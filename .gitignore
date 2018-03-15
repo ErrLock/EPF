@@ -9,3 +9,7 @@ composer.phar
 
 # doxygen output
 docs/*/
+
+# build files
+*.time
+*.list
