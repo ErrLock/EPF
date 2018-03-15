@@ -28,8 +28,12 @@
 namespace EPF;
 
 /**
- * @brief 
- * @details 
+ * @brief The Autoload class
+ * @details Used to autoload classes
+ * @remark
+ * This class registers itself with the following parameters:
+ * - namespace: ErrLock
+ * - path: The directory where this file resides
  */
 class Autoload
 {
@@ -99,8 +103,6 @@ class Autoload
 	 * @brief Load a class
 	 * 
 	 * @param[in] string class The class to load (namespaced)
-	 * 
-	 * @retval type Desc
 	 */
 	public function load(string $class)
 	{
@@ -239,11 +241,5 @@ class Autoload
 	}
 }
 
-/*
- * @note
- * This class registers itself with the following parameters:
- * - namespace: ErrLock
- * - path: The directory where this file resides
- */
 Autoload::register(__NAMESPACE__, __DIR__);
 ?>
