@@ -7,8 +7,5 @@ composer.phar
 
 *.geany
 
-# gh-pages config
-doc/gh-pages.conf
-
 # doxygen output
-doc/*/
+docs/*/
