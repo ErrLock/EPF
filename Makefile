@@ -3,7 +3,7 @@ SRCS = $(shell find src -type f)
 all:
 
 srcs.list: force
-	echo "$(SRCS)" | cmp -s - $@ || echo "$(SRCS)" > $@
+	@echo "$(SRCS)" | cmp -s - $@ || echo "$(SRCS)" > $@
 	
 docs/html: srcs.list $(SRCS)
 	doxygen conf/doxygen/html.conf
