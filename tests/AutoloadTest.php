@@ -64,6 +64,16 @@ final class AutoloadTest extends TestCase
 	}
 	
 	/**
+	 * @brief Test if Autoload loads
+	 * 
+	 * @depends testRegisters
+	 */
+	public function testLoads()
+	{
+		$this->assertTrue(class_exists('testNS\testClass'));
+	}
+	
+	/**
 	 * @brief Find a registered Autoload
 	 */
 	private function find_loader($ns, $path)
