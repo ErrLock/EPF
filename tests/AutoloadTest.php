@@ -28,7 +28,7 @@ declare(strict_types=1);
 
 namespace EPF;
 
-require_once("Autoload.php");
+require_once("EPF/Autoload.php");
 
 use PHPUnit\Framework\TestCase;
 
@@ -42,7 +42,7 @@ final class AutoloadTest extends TestCase
 	 */
 	public function testRegistersItself()
 	{
-		$path = realpath(__DIR__ .'/../src');
+		$path = realpath(__DIR__ .'/../src/EPF');
 		
 		$al = $this->find_loader(__NAMESPACE__, $path);
 		
