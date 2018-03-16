@@ -141,6 +141,7 @@ information:
 
 ### Pull Requests
 
+*	Follow the [GitHub WorkFlow](https://guides.github.com/introduction/flow/ "GitHub WorkFlow")
 *	Fill in [the required template](PULL_REQUEST_TEMPLATE.md)
 *	Do not include issue numbers in the PR title
 *	Document new code based on the [Documentation Styleguide](#documentation-styleguide)
