@@ -42,8 +42,32 @@ final class AutoloadTest extends TestCase
 	 */
 	public function testRegistersItself()
 	{
-		$class = Autoload::class;
 		$path = realpath(__DIR__ .'/../src');
+		
+		$al = $this->find_loader(__NAMESPACE__, $path);
+		
+		$this->assertInstanceOf(Autoload::class, $al);
+	}
+	
+	/**
+	 * @brief Test if Autoload registers
+	 */
+	public function testRegisters()
+	{
+		$al = Autoload::register('testNS', __DIR__ .'/autoload');
+		
+		$this->assertInstanceOf(Autoload::class, $al);
+		
+		$al = $this->find_loader('testNS', realpath(__DIR__ .'/autoload'));
+		
+		$this->assertInstanceOf(Autoload::class, $al);
+	}
+	
+	/**
+	 * @brief Find a registered Autoload
+	 */
+	private function find_loader($ns, $path)
+	{
 		$result = null;
 		
 		foreach(spl_autoload_functions() as $al)
@@ -51,12 +75,12 @@ final class AutoloadTest extends TestCase
 			if(
 				is_array($al)
 				&& is_object($al[0])
-				&& is_a($al[0], $class)
+				&& is_a($al[0], Autoload::class)
 			)
 			{
 				$al = $al[0];
 				if(
-					($al->get_namespace() == __NAMESPACE__)
+					($al->get_namespace() == $ns)
 					&& ($al->get_path() == $path)
 					&& ($al->get_suffixes() == Autoload::DEFAULT_SUFFIXES)
 				)
@@ -67,7 +91,7 @@ final class AutoloadTest extends TestCase
 			}
 		}
 		
-		$this->assertInstanceOf($class, $result);
+		return $result;
 	}
 }
 ?>
