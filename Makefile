@@ -1,6 +1,14 @@
 SRCS = $(shell find src -type f)
 
+.PHONY: all clean maint-clean doc gh-pages
+
 all:
+
+clean:
+
+maint-clean: clean
+	rm -f srcs.list
+	rm -f gh-pages.time
 
 srcs.list: force
 	@echo "$(SRCS)" | cmp -s - $@ || echo "$(SRCS)" > $@
@@ -15,5 +23,3 @@ gh-pages.time: docs/html
 	date "+%s" > $@
 
 gh-pages: gh-pages.time
-
-.PHONY: force doc gh-pages
