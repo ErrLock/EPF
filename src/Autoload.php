@@ -57,7 +57,7 @@ class Autoload
 	 * 
 	 * @retval Autoload The registered instance
 	 */
-	public function register(
+	public static function register(
 		string $namespace,
 		string $path,
 		array $suffixes = null
@@ -165,7 +165,7 @@ class Autoload
 			return null;
 		}
 		
-		foreach(spl_autoload_functions() as $al)
+		foreach($spl_al as $al)
 		{
 			if(
 				is_array($al)
