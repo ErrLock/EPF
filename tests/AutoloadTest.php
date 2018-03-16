@@ -24,9 +24,9 @@
  * @version 0.1
  */
 
-namespace EPF;
-
 declare(strict_types=1);
+
+namespace EPF;
 
 use PHPUnit\Framework\TestCase;
 
