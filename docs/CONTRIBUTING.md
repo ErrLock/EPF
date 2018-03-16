@@ -157,9 +157,9 @@ information:
 			2.	Protected
 			3.	Private
 		2.	Methods
-			3.	Public
-			4.	Protected
-			5.	Private
+			1.	Public
+			2.	Protected
+			3.	Private
 	3.	Instance properties and methods (same order as static ones)
 *	Indent with four spaces
 *	This is open source software. Consider the people who will read your code,
