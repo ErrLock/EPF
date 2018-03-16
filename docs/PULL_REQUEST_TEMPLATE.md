@@ -14,7 +14,9 @@ timely manner may be closed at the maintainers' discretion.
 Fixed Issues
 ============
 
-Fixes #1, #2 ...
+* Fix #1
+* Fix #2
+* and so on...
 
 Maintainers
 ===========
