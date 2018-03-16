@@ -28,6 +28,8 @@ declare(strict_types=1);
 
 namespace EPF;
 
+require_once("Autoload.php");
+
 use PHPUnit\Framework\TestCase;
 
 /**
@@ -40,7 +42,32 @@ final class AutoloadTest extends TestCase
 	 */
 	public function testRegistersItself()
 	{
+		$class = Autoload::class;
+		$path = realpath(__DIR__ .'/../src');
+		$result = null;
 		
+		foreach(spl_autoload_functions() as $al)
+		{
+			if(
+				is_array($al)
+				&& is_object($al[0])
+				&& is_a($al[0], $class)
+			)
+			{
+				$al = $al[0];
+				if(
+					($al->get_namespace() == __NAMESPACE__)
+					&& ($al->get_path() == $path)
+					&& ($al->get_suffixes() == Autoload::DEFAULT_SUFFIXES)
+				)
+				{
+					$result = $al;
+					break;
+				}
+			}
+		}
+		
+		$this->assertInstanceOf($class, $result);
 	}
 }
 ?>
