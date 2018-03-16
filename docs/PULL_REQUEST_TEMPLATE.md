@@ -29,7 +29,7 @@ list them here.
 > Please keep this mention so that we get informed of your PR as fast as
 possible.
 
-@ErrLock/ErrLock-Admin New PR
+@ErrLock-Admin New PR
 
 Description
 ===========
