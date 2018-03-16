@@ -57,7 +57,7 @@ class Autoload
 	 * 
 	 * @retval Autoload The registered instance
 	 */
-	public function register(
+	public static function register(
 		string $namespace,
 		string $path,
 		array $suffixes = null
