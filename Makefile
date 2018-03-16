@@ -1,6 +1,6 @@
 SRCS = $(shell find src -type f)
 
-.PHONY: all clean maint-clean doc gh-pages
+.PHONY: all clean maint-clean doc gh-pages tests
 
 all:
 
@@ -23,3 +23,6 @@ gh-pages.time: docs/html
 	date "+%s" > $@
 
 gh-pages: gh-pages.time
+
+tests:
+	phpunit --include-path src/ tests/
