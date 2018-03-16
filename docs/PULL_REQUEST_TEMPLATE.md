@@ -53,6 +53,19 @@ What are the possible side-effects or negative impacts of the code change?
 Verification
 ============
 
+Tests
+-----
+
+List all the new/modified tests. Add details about your modifications.
+
+*	**add** testFeatureA.code:
+	Test FeatureA
+*	**change** testFooBar.code:
+	Verify that FooBar works well whith FeatureA
+
+Use Case
+--------
+
 Describe the exact steps which reproduce the behaviour of this PR in as many
 details as possible. Provide specific examples to demonstrate the steps.
 

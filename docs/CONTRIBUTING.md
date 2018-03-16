@@ -19,7 +19,7 @@ Table Of Contents
 *	[How Can I Contribute?](#how-can-i-contribute)
 	-	[Reporting Bugs](#reporting-bugs)
 	-	[Suggesting Enhancements](#suggesting-enhancements)
-	-	[Pull Requests](#pull-requests)
+	-	[Submiting new code](#submitting-new-code)
 *	[Styleguides](#styleguides)
 	-	[Git Commit Messages](#git-commit-messages)
 	-	[Documentation Styleguide](#documentation-styleguide)
@@ -139,12 +139,27 @@ information:
 *	**Specify which version you're using.**
 *	**Specify the name and version of the OS you're using.**
 
-### Pull Requests
+### Submiting new code
 
-*	Follow the [GitHub WorkFlow](https://guides.github.com/introduction/flow/ "GitHub WorkFlow")
-*	Fill in [the required template](PULL_REQUEST_TEMPLATE.md)
-*	Do not include issue numbers in the PR title
+This section guides you through submitting new code. Following these guidelines
+helps maintainers keeping the code clean and stable.
+
+We follow the [GitHub WorkFlow](https://guides.github.com/introduction/flow/ "GitHub WorkFlow").
+
+#### Create a new branch
+
+*	Create your branch off of _master_.
+*	Name your branch so that it is easily identified:
+	-	**bugfix-**issue_title: For branches that aim to fix a bug.
+	-	**feature-**feature_title: For branches that aim to implement a new
+		feature.
+	-	**other-**title: For anything else. Choose a descriptive title.
+
+#### Write some code
+
+*	Commit **often**
 *	Document new code based on the [Documentation Styleguide](#documentation-styleguide)
+*	Indent with four spaces
 *	End all files with a newline
 *	Avoid platform-dependent code
 *	Place requires in the following order:
@@ -162,9 +177,18 @@ information:
 			2.	Protected
 			3.	Private
 	3.	Instance properties and methods (same order as static ones)
-*	Indent with four spaces
 *	This is open source software. Consider the people who will read your code,
 	and make it look nice for them.
+
+#### Test your code
+
+*	Add/modify Tests relevant to your new code
+*	Make sure **all** the tests pass with your new code
+
+#### Create a Pull Request
+
+*	Fill in [the required template](PULL_REQUEST_TEMPLATE.md)
+*	Do not include issue numbers in the PR title
 
 Styleguides
 -----------
