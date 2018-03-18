@@ -44,14 +44,12 @@ api_request()
 	tkh="Authorization: token ${token}"
 	cth="Content-Type: application/json"
 	
-	set -x
 	if [ -z "$data" ]; then
-		curl -i -H "${uah}" -H "${tkh}" ${path}
+		curl -H "${uah}" -H "${tkh}" ${path}
 	else
-		curl -i -H "${uah}" -H "${tkh}" -H "${cth}" \
+		curl -H "${uah}" -H "${tkh}" -H "${cth}" \
 			-d "${data}" ${path}
 	fi
-	set +x
 }
 
 action_new()
@@ -67,7 +65,7 @@ action_new()
 			git pull || failure "Failed to pull master"
 			git checkout -b ${bname} ||
 				failure "Failed to create branch ${bname}"
-			git branch --set-upstream-to=origin/${bname} ||
+			git push --set-upstream origin ${bname} ||
 				failure "Failed to create upstream branch ${bname}"
 			;;
 		*)
@@ -78,10 +76,10 @@ action_new()
 
 action_pr()
 {
-	pr_head=$(git status -s -b | head -n 1 | cut -d " " -f 2)
+	pr_head=$(git status -s -b | head -n 1 | cut -d " " -f 2 | cut -d '.' -f 1)
 	pr_base="master"
 	
-	git push origin ${pr_head}
+	git push origin ${pr_head} || failure "Failed to push"
 	
 	last_commit=$(git log --pretty=format:%s -n 1)
 	printf "Title (%s): " "$last_commit"
