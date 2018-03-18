@@ -48,7 +48,7 @@ api_request()
 	if [ -z "$data" ]; then
 		curl -i -H "${uah}" -H "${tkh}" ${path}
 	else
-		curl --trace-ascii - -i -H "${uah}" -H "${tkh}" -H "${cth}" \
+		curl -i -H "${uah}" -H "${tkh}" -H "${cth}" \
 			-d "${data}" ${path}
 	fi
 	set +x
@@ -67,8 +67,8 @@ action_new()
 			git pull || failure "Failed to pull master"
 			git checkout -b ${bname} ||
 				failure "Failed to create branch ${bname}"
-			#~ git branch --set-upstream-to=${bname} ||
-				#~ failure "Failed to create upstream branch ${bname}"
+			git branch --set-upstream-to=${bname} ||
+				failure "Failed to create upstream branch ${bname}"
 			;;
 		*)
 			failure "Bad branch type (${what})"
