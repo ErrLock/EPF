@@ -78,10 +78,10 @@ action_new()
 
 action_pr()
 {
-	pr_head=$(git status -s -b | head -n 1 | cut -d " " -f 2)
+	pr_head=$(git status -s -b | head -n 1 | cut -d " " -f 2 | cut -d '.' -f 1)
 	pr_base="master"
 	
-	git push origin ${pr_head}
+	git push origin ${pr_head} || failure "Failed to push"
 	
 	last_commit=$(git log --pretty=format:%s -n 1)
 	printf "Title (%s): " "$last_commit"
