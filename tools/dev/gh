@@ -34,7 +34,7 @@ api_request()
 	[ $# -lt 1 ] && failure "Not enough arguments"
 	
 	path="${api}$1"
-	data="$2"
+	data=$(jq -n "$2")
 	
 	if [ -z "$token" ]; then
 		api_get_token || failure "Failed to get token"
@@ -48,7 +48,8 @@ api_request()
 	if [ -z "$data" ]; then
 		curl -i -H "${uah}" -H "${tkh}" ${path}
 	else
-		curl -v -i -H "${uah}" -H "${tkh}" -H "${cth}" -d "${data}" ${path}
+		curl --trace-ascii - -i -H "${uah}" -H "${tkh}" -H "${cth}" \
+			-d "${data}" ${path}
 	fi
 	set +x
 }
