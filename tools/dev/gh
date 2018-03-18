@@ -1,0 +1,133 @@
+#!/bin/sh
+
+mydir=$(cd $(dirname $0) && pwd)
+
+failure()
+{
+	printf "[FAILURE] %s\n" "$@" >&2
+	exit 1
+}
+
+if [ $# -lt 1 ]; then
+	failure "Not enough arguments"
+fi
+
+api="https://api.github.com"
+token=""
+if [ -f ${mydir}/gh_token ]; then
+	token=$(cat ${mydir}/gh_token)
+fi
+
+remote=$(git remote get-url origin)
+remote=${remote##*:}
+gh_user=${remote%%/*}
+gh_repo=${remote##*/}
+gh_repo=${gh_repo%%.*}
+
+api_get_token()
+{
+	failure "TODO"
+}
+
+api_request()
+{
+	[ $# -lt 1 ] && failure "Not enough arguments"
+	
+	path="${api}$1"
+	data=$(jq -n "$2")
+	
+	if [ -z "$token" ]; then
+		api_get_token || failure "Failed to get token"
+	fi
+	
+	uah="User-Agent: ErrLock-gh_helper"
+	tkh="Authorization: token ${token}"
+	cth="Content-Type: application/json"
+	
+	set -x
+	if [ -z "$data" ]; then
+		curl -i -H "${uah}" -H "${tkh}" ${path}
+	else
+		curl -i -H "${uah}" -H "${tkh}" -H "${cth}" \
+			-d "${data}" ${path}
+	fi
+	set +x
+}
+
+action_new()
+{
+	[ $# -eq 2 ] || failure "Not enough arguments"
+	
+	what="$1"
+	bname="${what}-${2}"
+	
+	case $what in
+		"feature"|"bugfix"|"other")
+			git checkout master || failure "Failed to checkout master"
+			git pull || failure "Failed to pull master"
+			git checkout -b ${bname} ||
+				failure "Failed to create branch ${bname}"
+			git branch --set-upstream-to=origin/${bname} ||
+				failure "Failed to create upstream branch ${bname}"
+			;;
+		*)
+			failure "Bad branch type (${what})"
+			;;
+	esac
+}
+
+action_pr()
+{
+	pr_head=$(git status -s -b | head -n 1 | cut -d " " -f 2)
+	pr_base="master"
+	
+	git push origin ${pr_head}
+	
+	last_commit=$(git log --pretty=format:%s -n 1)
+	printf "Title (%s): " "$last_commit"
+	read pr_title
+	if [ -z "$pr_title" ]; then
+		pr_title="$last_commit"
+	fi
+	
+	tmp_pr=$(mktemp)
+	cat docs/PULL_REQUEST_TEMPLATE.md >${tmp_pr}
+	tmp_pr_time=$(stat -c "%Y" ${tmp_pr})
+	
+	nano ${tmp_pr}
+	tmp_pr_newtime=$(stat -c "%Y" ${tmp_pr})
+	if [ "$tmp_pr_time" = "$tmp_pr_newtime" ]; then
+		printf "Aborted\n"
+		rm ${tmp_pr}
+		return 0
+	fi
+	
+	pr_body=$(cat ${tmp_pr})
+	rm ${tmp_pr}
+	
+	data=$(cat <<EOT
+{
+	"head": "$pr_head",
+	"base": "$pr_base",
+	"title": "$pr_title",
+	"body": "$pr_body"
+}
+EOT
+)
+	api_request "/repos/${gh_user}/${gh_repo}/pulls" "$data"
+}
+
+action="$1"
+shift
+
+case $action in
+	"new")
+		action_new "$@"
+		;;
+	"pr")
+		action_pr "$@"
+		;;
+	*)
+		failure "Unknown action (${action})"
+		;;
+esac

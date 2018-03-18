@@ -13,3 +13,6 @@ docs/*/
 # build files
 *.time
 *.list
+
+# dev tools
+tools/dev/gh_token
