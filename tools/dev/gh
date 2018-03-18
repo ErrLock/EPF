@@ -42,12 +42,15 @@ api_request()
 	
 	uah="User-Agent: ErrLock-gh_helper"
 	tkh="Authorization: token ${token}"
+	cth="Content-Type: application/json"
 	
+	set -x
 	if [ -z "$data" ]; then
 		curl -i -H "${uah}" -H "${tkh}" ${path}
 	else
-		curl -i -H "${uah}" -H "${tkh}" -d "${data}" ${path}
+		curl -v -i -H "${uah}" -H "${tkh}" -H "${cth}" -d "${data}" ${path}
 	fi
+	set +x
 }
 
 action_new()
