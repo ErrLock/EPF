@@ -1,0 +1,43 @@
+#!/bin/sh
+
+failure()
+{
+	printf "[FAILURE] %s\n" "$@" >&2
+	exit 1
+}
+
+if [ $# -lt 3 ]; then
+	failure "Not enough arguments"
+fi
+
+action_new()
+{
+	what="$1"
+	bname="${what}-${2}"
+	
+	case $what in
+		"feature"|"bugfix"|"other")
+			git checkout master || failure "Failed to checkout master"
+			git pull || failure "Failed to pull master"
+			git checkout -b ${bname} ||
+				failure "Failed to create branch ${bname}"
+			#~ git branch --set-upstream-to=${bname} ||
+				#~ failure "Failed to create upstream branch ${bname}"
+			;;
+		*)
+			failure "Bad branch type (${what})"
+			;;
+	esac
+}
+
+action="$1"
+shift
+
+case $action in
+	"new")
+		action_new "$@"
+		;;
+	*)
+		failure "Unknown action (${action})"
+		;;
+esac
