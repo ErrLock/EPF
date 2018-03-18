@@ -67,7 +67,7 @@ action_new()
 			git pull || failure "Failed to pull master"
 			git checkout -b ${bname} ||
 				failure "Failed to create branch ${bname}"
-			git branch --set-upstream-to=origin/${bname} ||
+			git push --set-upstream origin ${bname} ||
 				failure "Failed to create upstream branch ${bname}"
 			;;
 		*)
