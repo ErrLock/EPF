@@ -2,5 +2,5 @@
 <data xmlns="https://schemas.errlock.org/api/xml/data"
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="https://schemas.errlock.org/api/xml/data https://schemas.errlock.org/api/xml/data.xsd">
-	<entity name="players" href="players/" />
+	<entity id="players" href="players/" />
 </data>

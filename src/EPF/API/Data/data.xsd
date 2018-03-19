@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+	xmlns:data="https://schemas.errlock.org/api/xml/data"
+	targetNamespace="https://schemas.errlock.org/api/xml/data"
+	elementFormDefault="qualified"
+	attributeFormDefault="unqualified">
+	
+	<annotation>
+		<documentation xml:lang="en">
+			Data schema for EPF API data.
+		</documentation>
+	</annotation>
+	
+	<element name="data" type="data:data" />
+	
+	<attributeGroup name="mandatory">
+		<attribute name="id" type="ID" use="required" />
+	</attributeGroup>
+	
+	<simpleType name="media-type">
+		<restriction base="string">
+			<pattern value="[\p{L}\p{N}][\p{L}\p{N}!#$&amp;\-\^_\.\+]{0,126}/[\p{L}\p{N}][\p{L}\p{N}!#$&amp;\-\^_\.\+]{0,126}" />
+		</restriction>
+	</simpleType>
+	
+	<complexType name="data">
+		<choice maxOccurs="unbounded">
+			<element name="string" type="data:string" />
+			<element name="resource" type="data:resource" />
+			<element name="entity" type="data:entity" />
+		</choice>
+	</complexType>
+	
+	<complexType name="string">
+		<simpleContent>
+			<extension base="string">
+				<attributeGroup ref="data:mandatory" />
+			</extension>
+		</simpleContent>
+	</complexType>
+	
+	<complexType name="basic">
+		<attributeGroup ref="data:mandatory" />
+	</complexType>
+	
+	<complexType name="entity">
+		<complexContent>
+			<extension base="data:basic">
+				<attribute name="href" type="anyURI" use="required" />
+			</extension>
+		</complexContent>
+	</complexType>
+	
+	<complexType name="resource">
+		<complexContent>
+			<extension base="data:entity">
+				<attribute name="type" type="data:media-type" use="required" />
+			</extension>
+		</complexContent>
+	</complexType>
+</schema>
