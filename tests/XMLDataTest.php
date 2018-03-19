@@ -42,17 +42,17 @@ final class XMLDataTest extends TestCase
 		$schema = realpath(__DIR__ .'/../src/EPF/API/Data/data.xsd');
 		$doc = new DomDocument();
 		
-		//~ $doc->load($xml_dir .'/root.xml');
-		//~ $this->assertTrue($doc->schemaValidate($schema));
+		$doc->load($xml_dir .'/root.xml');
+		$this->assertTrue($doc->schemaValidate($schema));
 		
-		//~ $doc->load($xml_dir .'/players.xml');
-		//~ $this->assertTrue($doc->schemaValidate($schema));
+		$doc->load($xml_dir .'/players.xml');
+		$this->assertTrue($doc->schemaValidate($schema));
 		
 		$doc->load($xml_dir .'/player_id.xml');
 		$this->assertTrue($doc->schemaValidate($schema));
 		
-		//~ $doc->load($xml_dir .'/player_friends.xml');
-		//~ $this->assertTrue($doc->schemaValidate($schema));
+		$doc->load($xml_dir .'/player_friends.xml');
+		$this->assertTrue($doc->schemaValidate($schema));
 	}
 }
 ?>
