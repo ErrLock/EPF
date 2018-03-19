@@ -1,0 +1,10 @@
+<?xml version="1.0"?>
+<data xmlns="https://schemas.errlock.org/api/xml/data"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="https://schemas.errlock.org/api/xml/data https://schemas.errlock.org/api/xml/data.xsd">
+	<string name="firstName">Kevin</string>
+	<string name="lastName">Sookocheff</string>
+	<string name="pseudonym">soofaloofa</string>
+	<resource name="avatar" href="avatar.png" type="image/png" />
+	<entity name="friends" href="friends/" />
+</data>
