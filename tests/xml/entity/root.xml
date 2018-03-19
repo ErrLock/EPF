@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<entity xmlns="https://schemas.errlock.org/api/xml/entity"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="https://schemas.errlock.org/api/xml/entity https://schemas.errlock.org/api/xml/entity.xsd">
+	<link rel="self index" href="https://api.errlock.org/">
+		<title>This document</title>
+		<description>This is the root of the API</description>
+		<output>
+			<format type="text/html" />
+			<format type="text/xml" />
+			<format type="text/xhtml+xml" />
+			<format type="application/xml" />
+			<format type="application/json" />
+		</output>
+	</link>
+	<link rel="help" href="https://api.errlock.org/#help">
+		<!-- Not sent if minimal version requested -->
+		<title>Help</title>
+		<description>How to use this API</description>
+		<output>
+			<format type="text/html" />
+			<format type="text/xml" />
+			<format type="text/xhtml+xml" />
+			<format type="application/xml" />
+		</output>
+	</link>
+	<link rel="item" href="https://api.errlock.org/players/">
+		<title>Players</title>
+		<description>The players defined in this API</description>
+		<output>
+			<format type="text/html" />
+			<format type="text/xml" />
+			<format type="text/xhtml+xml" />
+			<format type="application/xml" />
+			<format type="application/json" />
+		</output>
+	</link>
+</entity>
