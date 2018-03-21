@@ -232,6 +232,7 @@ class Entity
 		
 		$child->set_parent($this);
 		$this->children[$name] = $child;
+		$this->add_link("item", $child->get_name(), $child->get_uri());
 	}
 	
 	/**
