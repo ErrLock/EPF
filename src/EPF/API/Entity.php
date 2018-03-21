@@ -33,7 +33,9 @@ namespace EPF\API;
  */
 class Entity
 {
-	private $id = null;
+	private $dom = null;
+	private $name = null;
+	private $root = null;
 	private $parent = null;
 	private $children = array(); /**< Desc */
 	
@@ -46,9 +48,15 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function __construct(string $id)
+	public function __construct()
 	{
-		$this->id = $id;
+		$this->dom = new \DomDocument();
+		$this->dom->loadXML(
+			'<?xml version="1.0" encoding="utf-8"?>
+<entity>
+</entity>',
+			LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+		);
 	}
 	
 	/**
@@ -60,9 +68,9 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function get_id()
+	protected function set_name(string $name)
 	{
-		return $this->id;
+		$this->name = $name;
 	}
 	
 	/**
@@ -74,28 +82,130 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function GET(string $path)
+	protected function set_root(Server $root)
 	{
-		$path = explode('/', $path);
-		$id = array_shift($path);
-				
-		if(empty($id))
+		$this->root = $root;
+		
+		/*
+		 * As soon as we have a root, we can start building our xml
+		 */
+		$root = $this->get_root();
+		if($root === $this)
 		{
-			return $this;
+			$this->add_link("self index", $this->get_name(), $this->get_uri());
+		}
+		else
+		{
+			$this->add_link("index", $root->get_name(), $root->get_uri());
+		}
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function get_uri()
+	{
+		$root = $this->get_root();
+		if($root === $this)
+		{
+			return "/";
 		}
 		
-		if(!array_key_exists($id, $this->children))
+		$uri = $this->get_parent()->get_uri();
+		if(strrpos($uri, '/') !== (strlen($uri) -1))
+		{
+			$uri .= "/";
+		}
+		$uri .= $this->get_name();
+		
+		return  $uri;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function add_link(string $rel, string $name, string $uri)
+	{
+		$node = $this->dom->createElement("link");
+		$node->setAttribute("rel", $rel);
+		$node->setAttribute("name", $name);
+		$node->setAttribute("href", $uri);
+		$node->setIdAttribute("name", true);
+		
+		$this->dom->documentElement->appendChild($node);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function get_name()
+	{
+		return $this->name;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function get_parent()
+	{
+		return $this->parent;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function get_root()
+	{
+		return $this->root;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getChild(string $name)
+	{
+		if(!array_key_exists($name, $this->children))
 		{
 			throw new \Error("Invalid path");
 		}
 		
-		$value = $this->children[$id];
-		if(!is_a($value, 'EPF\API\Entity'))
-		{
-			throw new \Error("Invalid path");
-		}
-		
-		return $value->GET($path);
+		return $this->children[$name];
 	}
 	
 	/**
@@ -107,16 +217,21 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function append(Entity $child)
+	public function appendChild(Entity $child)
 	{
-		$id = $child->get_id();
-		if(array_key_exists($id, $this->children))
+		if($child->get_root() !== $this->get_root())
 		{
-			throw new \Error("Child already exists: ". $id);
+			throw new \Error("Entities are not from the same API");
+		}
+		
+		$name = $child->get_name();
+		if(array_key_exists($name, $this->children))
+		{
+			throw new \Error("Child already exists: ". $name);
 		}
 		
 		$child->set_parent($this);
-		$this->children[$id] = $child;
+		$this->children[$name] = $child;
 	}
 	
 	/**
@@ -136,6 +251,9 @@ class Entity
 		}
 		
 		$this->parent = $parent;
+		
+		// We have a parent, means we can get a link
+		$this->add_link("self", $this->get_name(), $this->get_uri());
 	}
 	
 	/**
@@ -149,62 +267,7 @@ class Entity
 	 */
 	public function __toString()
 	{
-		if(!isset($this->dom))
-		{
-			$this->make_dom();
-		}
-		
 		return $this->dom->saveXML();
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function make_dom()
-	{
-		$this->dom = new \DomDocument();
-		$this->dom->loadXML(
-			'<?xml version="1.0" encoding="utf-8"?>
-<entity>
-</entity>',
-			LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
-		);
-		
-		foreach($this->children as $id => $child)
-		{
-			$type = gettype($child);
-			if($type == 'object')
-			{
-				$type = get_class($child);
-				if(is_a($child, 'EPF\API\Entity'))
-				{
-					$type = "entity";
-				}
-			}
-			
-			$node = null;
-			switch($type)
-			{
-				case 'entity':
-					$node = $this->dom->createElement('link');
-					$node->setAttribute("rel", "item");
-					break;
-				default:
-					throw new \Error("Invalid type: ". $type);
-					break;
-			}
-			
-			$node->setAttribute("name", $id);
-			$node->setIdAttribute("name", true);
-			
-			$this->dom->documentElement->appendChild($node);
-		}
 	}
 }
 ?>

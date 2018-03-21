@@ -44,7 +44,9 @@ class Server extends Entity
 	 */
 	public function __construct()
 	{
-		parent::__construct("root");
+		parent::__construct();
+		$this->set_name("root");
+		$this->set_root($this);
 	}
 	
 	/**
@@ -62,8 +64,20 @@ class Server extends Entity
 		{
 			throw new Error("Path must be absolute");
 		}
+		
 		$path = substr($path, 1);
-		return parent::GET($path);
+		if(empty($path))
+		{
+			return $this;
+		}
+		
+		$path = explode('/', $path);
+		$result = $this;
+		foreach($path as $name)
+		{
+			$result = $result->getChild($name);
+		}
+		return $result;
 	}
 	
 	/**
@@ -86,6 +100,24 @@ class Server extends Entity
 		
 		header('Content-Type: '. $media);
 		echo $entity;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function createEntity(string $name)
+	{
+		$entity = new Entity();
+		$entity->set_root($this);
+		$entity->set_name($name);
+		
+		return $entity;
 	}
 }
 ?>
