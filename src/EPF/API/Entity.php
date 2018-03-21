@@ -254,6 +254,7 @@ class Entity
 		
 		// We have a parent, means we can get a link
 		$this->add_link("self", $this->get_name(), $this->get_uri());
+		$this->add_link("collection", $parent->get_name(), $parent->get_uri());
 	}
 	
 	/**
