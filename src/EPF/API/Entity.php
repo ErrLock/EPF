@@ -34,6 +34,7 @@ namespace EPF\API;
 class Entity
 {
 	private $id = null;
+	private $parent = null;
 	private $children = array(); /**< Desc */
 	
 	/**
@@ -114,7 +115,27 @@ class Entity
 			throw new \Error("Child already exists: ". $id);
 		}
 		
+		$child->set_parent($this);
 		$this->children[$id] = $child;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function set_parent(Entity $parent)
+	{
+		if(isset($this->parent))
+		{
+			throw new \Error("Parent already set");
+		}
+		
+		$this->parent = $parent;
 	}
 	
 	/**
