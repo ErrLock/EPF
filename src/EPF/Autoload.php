@@ -231,6 +231,7 @@ class Autoload
 		}
 		
 		// Not found, try the class name
+		$class = substr($class, strrpos($class, '\\') + 1);
 		$path = $prefix ."/". $class .".php";
 		if(is_file($path))
 		{
