@@ -32,100 +32,58 @@ require_once("EPF/Autoload.php");
 
 use PHPUnit\Framework\TestCase;
 
-class EntityPlayer extends Entity
-{
-	protected function init()
-	{
-		parent::init();
-		
-		$root = $this->get_root();
-		$friends = $root->createEntity("friends");
-		$this->appendChild($friends);
-	}
-}
-
-class EntityPlayerList extends Entity
-{
-	private $all_children = array(
-		"player1",
-		"player2"
-	);
-	
-	public function getChild(string $name)
-	{
-		/*
-		 * Create child when asked
-		 */
-		$this->check_player($name);
-		
-		return parent::getChild($name);
-	}
-	
-	protected function populate()
-	{
-		/*
-		 * We fully populate the dom only if asked for it
-		 */
-		parent::populate();
-		foreach($this->all_children as $name)
-		{
-			$this->check_player($name);
-		}
-	}
-	
-	private function check_player(string $name)
-	{
-		if(!$this->childExists($name) && in_array($name, $this->all_children))
-		{
-			$root = $this->get_root();
-			if(is_null($root))
-			{
-				throw new \Error("No root");
-			}
-			$child = $root->createEntity($name, EntityPlayer::class);
-			$this->appendChild($child);
-		}
-	}
-}
-
-class ServerFromClass extends Server
-{
-	protected function init()
-	{
-		parent::init();
-		$players = $this->createEntity("players", EntityPlayerList::class);
-		$this->appendChild($players);
-	}
-}
-
 /**
  * @brief Autoload test
  */
 final class ServerTest extends TestCase
 {
+	private $api = null;
+	private $test_paths = array(
+		"/",
+		"/players",
+		"/players/player1",
+		"/players/player1/friends",
+	);
+	private $expected = null;
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function setup()
+	{
+		$this->expected = new \DomDocument();
+		$this->expected->preserveWhiteSpace = false;
+	}
+	
 	/**
 	 * @brief Test if Autoload registers itself
 	 */
 	public function testFromCode()
 	{
-		$api = new Server();
+		$this->api = new Server();
 		
-		$players = $api->createEntity("players");
-		$api->appendChild($players);
+		$players = $this->api->createEntity("players");
+		$this->api->appendChild($players);
 		
-		$player_1 = $api->createEntity("player1");
+		$player_1 = $this->api->createEntity("player1");
 		$players->appendChild($player_1);
 
-		$player_1_friends = $api->createEntity("friends");
+		$player_1_friends = $this->api->createEntity("friends");
 		$player_1->appendChild($player_1_friends);
 
-		$player_2 = $api->createEntity("player2");
+		$player_2 = $this->api->createEntity("player2");
 		$players->appendChild($player_2);
 
-		$player_2_friends = $api->createEntity("friends");
+		$player_2_friends = $this->api->createEntity("friends");
 		$player_2->appendChild($player_2_friends);
 		
-		$this->api_check($api);
+		$this->api_check();
 	}
 	
 	/**
@@ -133,9 +91,10 @@ final class ServerTest extends TestCase
 	 */
 	public function testFromClass()
 	{
-		$api = new ServerFromClass();
+		require_once(__DIR__ .'/resources/ServerFromClass.php');
+		$this->api = new \ServerFromClass();
 		
-		$this->api_check($api);
+		$this->api_check();
 	}
 	
 	/**
@@ -147,19 +106,9 @@ final class ServerTest extends TestCase
 	 * 
 	 * @retval type Desc
 	 */
-	private function api_check(Server $api)
+	private function api_check()
 	{
-		$expected = new \DomDocument();
-		$expected->preserveWhiteSpace = false;
-		
-		$test_paths = array(
-			"/",
-			"/players",
-			"/players/player1",
-			"/players/player1/friends",
-		);
-		
-		foreach($test_paths as $path)
+		foreach($this->test_paths as $path)
 		{
 			$x_name = substr($path, 1);
 			if(empty($x_name))
@@ -170,10 +119,9 @@ final class ServerTest extends TestCase
 			{
 				$x_name = str_replace('/', '_', $x_name);
 			}
-			$actual = $api->GET($path);
-			$expected->load(__DIR__ .'/resources/xml/'. $x_name .'.xml');
-			$this->assertEquals($expected, $actual);
-		
+			$actual = $this->api->GET($path);
+			$this->expected->load(__DIR__ .'/resources/xml/'. $x_name .'.xml');
+			$this->assertEquals($this->expected, $actual);
 		}
 	}
 }
