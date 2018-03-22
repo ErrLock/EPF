@@ -33,6 +33,8 @@ namespace EPF\API;
  */
 class Server extends Entity
 {
+	private $uri = "/";
+	
 	/**
 	 * @brief 
 	 * 
@@ -45,7 +47,7 @@ class Server extends Entity
 	public function __construct()
 	{
 		parent::__construct("index");
-		$this->set_root($this);
+		$this->set_api($this);
 	}
 	
 	/**
@@ -76,11 +78,15 @@ class Server extends Entity
 			$path = explode('/', $path);
 			foreach($path as $name)
 			{
-				$result = $result->getChild($name);
+				$result = $result->getProperty($name);
+				if(!is_a($result, 'EPF\API\Entity'))
+				{
+					throw new \Error($name ." is not an entity");
+				}
 			}
 		}
 		
-		$dom = $result->get_dom();
+		$dom = $result->getDOM();
 		
 		/*
 		 * We can modify the dom here
@@ -100,38 +106,9 @@ class Server extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function send(string $path, string $media)
+	public function getURI()
 	{
-		$entity = $this->GET($path, $media);
-		
-		header('Content-Type: '. $media);
-		echo $entity->saveXML();
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function createEntity(string $name, string $class = null)
-	{
-		if(is_null($class))
-		{
-			$class = "EPF\API\Entity";
-		}
-		elseif(!is_subclass_of($class, "EPF\API\Entity"))
-		{
-			throw new \Error($class ." is not an Entity");
-		}
-		
-		$entity = new $class($name);
-		$entity->set_root($this);
-		
-		return $entity;
+		return  $this->uri;
 	}
 }
 ?>

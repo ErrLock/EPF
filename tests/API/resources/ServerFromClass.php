@@ -6,13 +6,22 @@ use EPF\API\Server;
 
 class EntityPlayer extends Entity
 {
-	protected function init()
+	public function __construct(string $name)
 	{
-		parent::init();
+		parent::__construct($name);
 		
-		$root = $this->get_root();
-		$friends = $root->createEntity("friends");
-		$this->appendChild($friends);
+		$displayName = null;
+		switch($this->getName())
+		{
+			case "player1":
+				$displayName = "Player 1";
+				break;
+			case "player2":
+				$displayName = "Player 2";
+				break;
+		}
+		$this->set_property("displayName", $displayName);
+		$this->set_property("friends", new Entity("friends"));
 	}
 }
 
@@ -23,14 +32,19 @@ class EntityPlayerList extends Entity
 		"player2"
 	);
 	
-	public function getChild(string $name)
+	public function __construct(string $name = "players")
+	{
+		parent::__construct($name);
+	}
+	
+	public function getProperty(string $name)
 	{
 		/*
 		 * Create child when asked
 		 */
 		$this->check_player($name);
 		
-		return parent::getChild($name);
+		return parent::getProperty($name);
 	}
 	
 	protected function populate()
@@ -47,26 +61,23 @@ class EntityPlayerList extends Entity
 	
 	private function check_player(string $name)
 	{
-		if(!$this->childExists($name) && in_array($name, $this->all_children))
+		if(
+			!$this->hasProperty($name)
+			&& in_array($name, $this->all_children)
+		)
 		{
-			$root = $this->get_root();
-			if(is_null($root))
-			{
-				throw new \Error("No root");
-			}
-			$child = $root->createEntity($name, EntityPlayer::class);
-			$this->appendChild($child);
+			$this->set_property($name, new EntityPlayer($name));
 		}
 	}
 }
 
 class ServerFromClass extends Server
 {
-	protected function init()
+	public function __construct()
 	{
-		parent::init();
-		$players = $this->createEntity("players", EntityPlayerList::class);
-		$this->appendChild($players);
+		parent::__construct();
+		
+		$this->set_property("players", new EntityPlayerList());
 	}
 }
 ?>

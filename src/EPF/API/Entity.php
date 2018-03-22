@@ -35,9 +35,9 @@ class Entity
 {
 	private $dom = null;
 	private $name = null;
-	private $root = null;
+	private $api = null;
 	private $parent = null;
-	private $children = array(); /**< Desc */
+	private $properties = array(); /**< Desc */
 	
 	/**
 	 * @brief 
@@ -64,7 +64,7 @@ class Entity
 	 */
 	public function __toString()
 	{
-		return $this->get_dom()->saveXML();
+		return $this->getDOM()->saveXML();
 	}
 	
 	/**
@@ -76,7 +76,49 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function get_name()
+	public function __call(string $method, array $args)
+	{
+		$caller = debug_backtrace(null, 2)[1]["class"];
+		if(!method_exists(self::class, $method))
+		{
+			throw new \Error(self::class ."::". $method ." doesn't exists");
+		}
+		
+		// This is our friend
+		if(is_a($caller, 'EPF\API\Server'))
+		{
+			throw new \Error("Call to ". self::class ."::". $method .
+			" not allowed from ". $caller);
+		}
+		
+		$allowed = false;
+		switch($method)
+		{
+			case "set_api":
+			case "set_property":
+				$allowed = true;
+				break;
+		}
+		
+		if(!$allowed)
+		{
+			throw new \Error("Call to ". self::class ."::". $method .
+			" not allowed from ". $caller);
+		}
+		
+		return call_user_func_array(array($this, $method), $args);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getName()
 	{
 		return $this->name;
 	}
@@ -90,7 +132,7 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function get_parent()
+	public function getParent()
 	{
 		return $this->parent;
 	}
@@ -104,9 +146,9 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function get_root()
+	public function getAPI()
 	{
-		return $this->root;
+		return $this->api;
 	}
 	
 	/**
@@ -118,74 +160,14 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function appendChild(Entity $child)
+	public function getProperty(string $name)
 	{
-		$root = $this->get_root();
-		if(is_null($root))
+		if(!$this->hasProperty($name))
 		{
-			throw new \Error("No root");
+			return null;
 		}
 		
-		if($child->get_root() !== $root)
-		{
-			throw new \Error("Entities are not from the same API");
-		}
-		
-		$name = $child->get_name();
-		if($this->childExists($name))
-		{
-			throw new \Error("Child already exists: ". $name);
-		}
-		
-		$child->set_parent($this);
-		$this->children[$name] = $child;
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function getChild(string $name)
-	{
-		if(!$this->childExists($name))
-		{
-			throw new \Error("Invalid path: ". $name);
-		}
-		
-		return $this->children[$name];
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function childExists(string $name)
-	{
-		return array_key_exists($name, $this->children);
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	protected function init()
-	{
-		
+		return $this->properties[$name];
 	}
 	
 	/**
@@ -211,15 +193,21 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	protected function set_root(Server $root)
+	private function set_api(Server $api)
 	{
-		if(isset($this->root))
+		if(isset($this->api))
 		{
-			throw new \Error("Root already set");
+			throw new \Error("API already set");
 		}
 		
-		$this->root = $root;
-		$this->init();
+		$this->api = $api;
+		foreach($this->properties as $prop)
+		{
+			if(is_a($prop, self::class))
+			{
+				$prop->set_api($api);
+			}
+		}
 	}
 	
 	/**
@@ -231,7 +219,7 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	protected function set_parent(Entity $parent)
+	private function set_parent(Entity $parent)
 	{
 		if(isset($this->parent))
 		{
@@ -250,11 +238,73 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	protected function get_dom()
+	private function set_property(string $name, $value)
+	{
+		$type = $this->get_property_type($value);
+		$p_type = $type;
+		if($this->hasProperty($name))
+		{
+			/*
+			 * Do not use getProperty,
+			 * we might get stuck in a loop if set_property is used in child class
+			 */
+			$p_type = $this->get_property_type($this->properties[$name]);
+			if($type != $p_type)
+			{
+				throw new \Error("Type mismatch: ". $type ." != ". $p_type);
+			}
+		}
+		
+		if($type == "entity")
+		{
+			$this->entity_init($value);
+		}
+		
+		$this->properties[$name] = $value;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function entity_init(Entity $entity)
+	{
+		$p_api = $entity->getAPI();
+		$api = $this->getAPI();
+		if(is_null($p_api))
+		{
+			if(!is_null($api))
+			{
+				$entity->set_api($api);
+			}
+		}
+		elseif($p_api != $api)
+		{
+			throw new \Error("Entities are not from the same API");
+		}
+		
+		$entity->set_parent($this);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getDOM()
 	{
 		if(!isset($this->dom))
 		{
-			$this->init_dom();
+			$this->dom_init();
 		}
 		
 		// Clone it, only us should modify it
@@ -285,23 +335,17 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	private function get_uri()
+	public function getURI()
 	{
-		$root = $this->get_root();
-		if($root === $this)
-		{
-			return "/";
-		}
-		
-		$parent = $this->get_parent();
-		$name = $this->get_name();
+		$parent = $this->getParent();
+		$name = $this->getName();
 		
 		if(is_null($parent))
 		{
 			return $name;
 		}
 		
-		$uri = $this->get_parent()->get_uri();
+		$uri = $parent->getURI();
 		if(strrpos($uri, '/') !== (strlen($uri) -1))
 		{
 			$uri .= "/";
@@ -320,7 +364,21 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	private function init_dom()
+	public function hasProperty(string $name)
+	{
+		return array_key_exists($name, $this->properties);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function dom_init()
 	{
 		$this->dom = new \DomDocument();
 		$this->dom->loadXML(
@@ -328,36 +386,25 @@ class Entity
 			LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
 		);
 		
-		$root = $this->get_root();
-		if($root === $this)
+		$api = $this->getAPI();
+		if(!is_null($api))
 		{
-			$this->add_link("self index", $this->get_name(), $this->get_uri());
+			$this->dom_add_property("index", $api);
 		}
-		else
-		{
-			if(!is_null($root))
-			{
-				$this->add_link("index", $root->get_name(), $root->get_uri());
-			}
-			$this->add_link("self", $this->get_name(), $this->get_uri());
-		}
+		$this->dom_add_property("self", $this);
 		
-		$parent = $this->get_parent();
+		$parent = $this->getParent();
 		if(!is_null($parent))
 		{
-			$this->add_link(
-				"collection",
-				$parent->get_name(),
-				$parent->get_uri()
-			);
+			$this->dom_add_property("collection", $parent);
 		}
 		
 		// populate
 		$this->populate();
 		
-		foreach($this->children as $child)
+		foreach($this->properties as $name => $value)
 		{
-			$this->add_link("item", $child->get_name(), $child->get_uri());
+			$this->dom_add_property($name, $value);
 		}
 	}
 	
@@ -370,15 +417,86 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	private function add_link(string $rel, string $name, string $uri)
+	private function dom_create_link(string $name, Entity $entity)
 	{
+		$rel = "item";
+		if($entity == $this->getAPI() && $name == "index")
+		{
+			$rel = "index";
+		}
+		elseif($entity == $this)
+		{
+			$rel = "self";
+		}
+		elseif($entity == $this->getParent())
+		{
+			$rel = "collection";
+		}
+		
 		$node = $this->dom->createElement("link");
 		$node->setAttribute("rel", $rel);
+		$node->setAttribute("href", $entity->getURI());
+		
+		return $node;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function dom_add_property(string $name, $value)
+	{
+		$node = null;
+		$type = $this->get_property_type($value);
+		switch($type)
+		{
+			case "entity":
+				$node = $this->dom_create_link($name, $value);
+				break;
+			case "string":
+				$node = $this->dom->createElement($type, $value);
+				break;
+		}
 		$node->setAttribute("name", $name);
-		$node->setAttribute("href", $uri);
 		$node->setIdAttribute("name", true);
 		
 		$this->dom->documentElement->appendChild($node);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function get_property_type($value)
+	{
+		$type = gettype($value);
+		switch($type)
+		{
+			case "object":
+				if(!is_a($value, self::class))
+				{
+					throw new \Error("Invalid type: ". get_class($value));
+				}
+				$type = "entity";
+				break;
+			case "string":
+				break;
+			default:
+				throw new \Error("Invalid type: ". $type);
+				break;
+		}
+		
+		return $type;
 	}
 }
 ?>

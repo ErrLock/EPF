@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <entity>
 	<link rel="index" name="index" href="/"/>
-	<link rel="self" name="player1" href="/players/player1"/>
-	<link rel="collection" name="players" href="/players"/>
+	<link rel="self" name="self" href="/players/player1"/>
+	<link rel="collection" name="collection" href="/players"/>
+	<string name="displayName">Player 1</string>
 	<link rel="item" name="friends" href="/players/player1/friends"/>
 </entity>

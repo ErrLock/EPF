@@ -29,6 +29,7 @@ declare(strict_types=1);
 namespace EPF\API;
 
 require_once("EPF/Autoload.php");
+require_once(__DIR__ .'/resources/ServerFromClass.php');
 
 use PHPUnit\Framework\TestCase;
 
@@ -45,6 +46,7 @@ final class ServerTest extends TestCase
 		"/players/player1/friends",
 	);
 	private $expected = null;
+	private $res = __DIR__ .'/resources/xml';
 	
 	/**
 	 * @brief 
@@ -59,70 +61,47 @@ final class ServerTest extends TestCase
 	{
 		$this->expected = new \DomDocument();
 		$this->expected->preserveWhiteSpace = false;
-	}
-	
-	/**
-	 * @brief Test if Autoload registers itself
-	 */
-	public function testFromCode()
-	{
-		$this->api = new Server();
-		
-		$players = $this->api->createEntity("players");
-		$this->api->appendChild($players);
-		
-		$player_1 = $this->api->createEntity("player1");
-		$players->appendChild($player_1);
-
-		$player_1_friends = $this->api->createEntity("friends");
-		$player_1->appendChild($player_1_friends);
-
-		$player_2 = $this->api->createEntity("player2");
-		$players->appendChild($player_2);
-
-		$player_2_friends = $this->api->createEntity("friends");
-		$player_2->appendChild($player_2_friends);
-		
-		$this->api_check();
+		$this->api = new \ServerFromClass();
 	}
 	
 	/**
 	 * @brief Test class generated api
 	 */
-	public function testFromClass()
+	public function testRoot()
 	{
-		require_once(__DIR__ .'/resources/ServerFromClass.php');
-		$this->api = new \ServerFromClass();
-		
-		$this->api_check();
+		$actual = $this->api->GET("/");
+		$this->expected->load($this->res .'/root.xml');
+		$this->assertEquals($this->expected, $actual);
 	}
 	
 	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
+	 * @brief Test class generated api
 	 */
-	private function api_check()
+	public function testPlayers()
 	{
-		foreach($this->test_paths as $path)
-		{
-			$x_name = substr($path, 1);
-			if(empty($x_name))
-			{
-				$x_name = "root";
-			}
-			else
-			{
-				$x_name = str_replace('/', '_', $x_name);
-			}
-			$actual = $this->api->GET($path);
-			$this->expected->load(__DIR__ .'/resources/xml/'. $x_name .'.xml');
-			$this->assertEquals($this->expected, $actual);
-		}
+		$actual = $this->api->GET("/players");
+		$this->expected->load($this->res .'/players.xml');
+		$this->assertEquals($this->expected, $actual);
+	}
+	
+	/**
+	 * @brief Test class generated api
+	 */
+	public function testPlayer()
+	{
+		$actual = $this->api->GET("/players/player1");
+		$this->expected->load($this->res .'/players_player1.xml');
+		$this->assertEquals($this->expected, $actual);
+	}
+	
+	/**
+	 * @brief Test class generated api
+	 */
+	public function testFriends()
+	{
+		$actual = $this->api->GET("/players/player1/friends");
+		$this->expected->load($this->res .'/players_player1_friends.xml');
+		$this->assertEquals($this->expected, $actual);
 	}
 }
 ?>
