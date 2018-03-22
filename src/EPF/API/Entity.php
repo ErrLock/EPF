@@ -48,13 +48,9 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function __construct()
+	public function __construct(string $name)
 	{
-		$this->dom = new \DomDocument();
-		$this->dom->loadXML(
-			'<?xml version="1.0" encoding="utf-8"?><entity />',
-			LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
-		);
+		$this->set_name($name);
 	}
 	
 	/**
@@ -82,20 +78,13 @@ class Entity
 	 */
 	protected function set_root(Server $root)
 	{
-		$this->root = $root;
+		if(isset($this->root))
+		{
+			throw new \Error("Root already set");
+		}
 		
-		/*
-		 * As soon as we have a root, we can start building our xml
-		 */
-		$root = $this->get_root();
-		if($root === $this)
-		{
-			$this->add_link("self index", $this->get_name(), $this->get_uri());
-		}
-		else
-		{
-			$this->add_link("index", $root->get_name(), $root->get_uri());
-		}
+		$this->root = $root;
+		$this->init();
 	}
 	
 	/**
@@ -107,10 +96,9 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	protected function init(Server $root, string $name)
+	protected function init()
 	{
-		$this->set_root($root);
-		$this->set_name($name);
+		
 	}
 	
 	/**
@@ -130,12 +118,20 @@ class Entity
 			return "/";
 		}
 		
+		$parent = $this->get_parent();
+		$name = $this->get_name();
+		
+		if(is_null($parent))
+		{
+			return $name;
+		}
+		
 		$uri = $this->get_parent()->get_uri();
 		if(strrpos($uri, '/') !== (strlen($uri) -1))
 		{
 			$uri .= "/";
 		}
-		$uri .= $this->get_name();
+		$uri .= $name;
 		
 		return  $uri;
 	}
@@ -151,10 +147,74 @@ class Entity
 	 */
 	protected function get_dom()
 	{
-		// Clone it, only us should modify it
+		if(!isset($this->dom))
+		{
+			$this->init_dom();
+		}
 		
+		// Clone it, only us should modify it
 		$dom = clone $this->dom;
 		return  $dom;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function init_dom()
+	{
+		$this->dom = new \DomDocument();
+		$this->dom->loadXML(
+			'<?xml version="1.0" encoding="utf-8"?><entity />',
+			LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+		);
+		
+		$root = $this->get_root();
+		if($root === $this)
+		{
+			$this->add_link("self index", $this->get_name(), $this->get_uri());
+		}
+		else
+		{
+			if(!is_null($root))
+			{
+				$this->add_link("index", $root->get_name(), $root->get_uri());
+			}
+			$this->add_link("self", $this->get_name(), $this->get_uri());
+		}
+		
+		$parent = $this->get_parent();
+		if(!is_null($parent))
+		{
+			$this->add_link("collection", $parent->get_name(), $parent->get_uri());
+		}
+		
+		// populate
+		$this->populate();
+		
+		foreach($this->children as $child)
+		{
+			$this->add_link("item", $child->get_name(), $child->get_uri());
+		}
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	protected function populate()
+	{
+	
 	}
 	
 	/**
@@ -263,20 +323,25 @@ class Entity
 	 */
 	public function appendChild(Entity $child)
 	{
-		if($child->get_root() !== $this->get_root())
+		$root = $this->get_root();
+		if(is_null($root))
+		{
+			throw new \Error("No root");
+		}
+		
+		if($child->get_root() !== $root)
 		{
 			throw new \Error("Entities are not from the same API");
 		}
 		
 		$name = $child->get_name();
-		if(array_key_exists($name, $this->children))
+		if($this->childExists($name))
 		{
 			throw new \Error("Child already exists: ". $name);
 		}
 		
 		$child->set_parent($this);
 		$this->children[$name] = $child;
-		$this->add_link("item", $child->get_name(), $child->get_uri());
 	}
 	
 	/**
@@ -296,10 +361,6 @@ class Entity
 		}
 		
 		$this->parent = $parent;
-		
-		// We have a parent, means we can get a link
-		$this->add_link("self", $this->get_name(), $this->get_uri());
-		$this->add_link("collection", $parent->get_name(), $parent->get_uri());
 	}
 	
 	/**
@@ -313,7 +374,7 @@ class Entity
 	 */
 	public function __toString()
 	{
-		return $this->dom->saveXML();
+		return $this->get_dom()->saveXML();
 	}
 }
 ?>

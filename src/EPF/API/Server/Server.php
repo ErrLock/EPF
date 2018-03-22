@@ -44,8 +44,7 @@ class Server extends Entity
 	 */
 	public function __construct()
 	{
-		parent::__construct();
-		$this->set_name("index");
+		parent::__construct("index");
 		$this->set_root($this);
 	}
 	
@@ -129,8 +128,8 @@ class Server extends Entity
 			throw new \Error($class ." is not an Entity");
 		}
 		
-		$entity = new $class();
-		$entity->init($this, $name);
+		$entity = new $class($name);
+		$entity->set_root($this);
 		
 		return $entity;
 	}

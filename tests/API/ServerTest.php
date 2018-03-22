@@ -34,9 +34,9 @@ use PHPUnit\Framework\TestCase;
 
 class EntityPlayer extends Entity
 {
-	protected function set_parent(Entity $parent)
+	protected function init()
 	{
-		parent::set_parent($parent);
+		parent::init();
 		
 		$root = $this->get_root();
 		$friends = $root->createEntity("friends");
@@ -51,42 +51,48 @@ class EntityPlayerList extends Entity
 		"player2"
 	);
 	
-	public function childExists(string $name)
+	public function getChild(string $name)
 	{
 		/*
 		 * Create child when asked
 		 */
-		$result = parent::childExists($name);
-		if(!$result && in_array($name, $this->all_children))
-		{
-			$root = $this->get_root();
-			$child = $root->createEntity($name, EntityPlayer::class);
-			$this->appendChild($child);
-			$result = parent::childExists($name);
-		}
+		$this->check_player($name);
 		
-		return $result;
+		return parent::getChild($name);
 	}
 	
-	protected function get_dom()
+	protected function populate()
 	{
 		/*
 		 * We fully populate the dom only if asked for it
 		 */
-		foreach($this->all_children as $child_name)
+		parent::populate();
+		foreach($this->all_children as $name)
 		{
-			$this->childExists($child_name);
+			$this->check_player($name);
 		}
-		
-		return parent::get_dom();
+	}
+	
+	private function check_player(string $name)
+	{
+		if(!$this->childExists($name) && in_array($name, $this->all_children))
+		{
+			$root = $this->get_root();
+			if(is_null($root))
+			{
+				throw new \Error("No root");
+			}
+			$child = $root->createEntity($name, EntityPlayer::class);
+			$this->appendChild($child);
+		}
 	}
 }
 
 class ServerFromClass extends Server
 {
-	public function __construct()
+	protected function init()
 	{
-		parent::__construct();
+		parent::init();
 		$players = $this->createEntity("players", EntityPlayerList::class);
 		$this->appendChild($players);
 	}
@@ -150,6 +156,7 @@ final class ServerTest extends TestCase
 			"/",
 			"/players",
 			"/players/player1",
+			"/players/player1/friends",
 		);
 		
 		foreach($test_paths as $path)
