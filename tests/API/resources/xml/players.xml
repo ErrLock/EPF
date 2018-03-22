@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<entity>
+	<link rel="index" name="index" href="/"/>
+	<link rel="self" name="players" href="/players"/>
+	<link rel="collection" name="index" href="/"/>
+	<link rel="item" name="player1" href="/players/player1"/>
+	<link rel="item" name="player2" href="/players/player2"/>
+</entity>

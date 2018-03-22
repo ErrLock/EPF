@@ -45,7 +45,7 @@ class Server extends Entity
 	public function __construct()
 	{
 		parent::__construct();
-		$this->set_name("root");
+		$this->set_name("index");
 		$this->set_root($this);
 	}
 	
@@ -58,26 +58,38 @@ class Server extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function GET(string $path = '/')
+	public function GET(string $path = '/', string $media = 'application/xml')
 	{
+		if($media != 'application/xml')
+		{
+			throw new \Error("Unknow media type: ". $media);
+		}
+	
 		if(strpos($path, '/') !== 0)
 		{
 			throw new Error("Path must be absolute");
 		}
 		
 		$path = substr($path, 1);
-		if(empty($path))
+		$result = $this;
+		if(!empty($path))
 		{
-			return $this;
+			$path = explode('/', $path);
+			foreach($path as $name)
+			{
+				$result = $result->getChild($name);
+			}
 		}
 		
-		$path = explode('/', $path);
-		$result = $this;
-		foreach($path as $name)
-		{
-			$result = $result->getChild($name);
-		}
-		return $result;
+		$dom = $result->get_dom();
+		
+		/*
+		 * We can modify the dom here
+		 * 
+		 * > Note: this is a clone of the Entity::$dom
+		 */
+		
+		return $dom;
 	}
 	
 	/**
@@ -91,15 +103,10 @@ class Server extends Entity
 	 */
 	public function send(string $path, string $media)
 	{
-		$entity = $this->GET($path);
-		
-		if($media != 'application/xml')
-		{
-			throw new \Error("Unknow media type: ". $media);
-		}
+		$entity = $this->GET($path, $media);
 		
 		header('Content-Type: '. $media);
-		echo $entity;
+		echo $entity->saveXML();
 	}
 	
 	/**

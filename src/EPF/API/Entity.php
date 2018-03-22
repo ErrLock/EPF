@@ -52,9 +52,7 @@ class Entity
 	{
 		$this->dom = new \DomDocument();
 		$this->dom->loadXML(
-			'<?xml version="1.0" encoding="utf-8"?>
-<entity>
-</entity>',
+			'<?xml version="1.0" encoding="utf-8"?><entity />',
 			LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
 		);
 	}
@@ -136,6 +134,23 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
+	protected function get_dom()
+	{
+		// Clone it, only us should modify it
+		
+		$dom = clone $this->dom;
+		return  $dom;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
 	private function add_link(string $rel, string $name, string $uri)
 	{
 		$node = $this->dom->createElement("link");
@@ -202,7 +217,7 @@ class Entity
 	{
 		if(!array_key_exists($name, $this->children))
 		{
-			throw new \Error("Invalid path");
+			throw new \Error("Invalid path: ". $name);
 		}
 		
 		return $this->children[$name];
