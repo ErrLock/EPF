@@ -118,11 +118,19 @@ class Server extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function createEntity(string $name)
+	public function createEntity(string $name, string $class = null)
 	{
-		$entity = new Entity();
-		$entity->set_root($this);
-		$entity->set_name($name);
+		if(is_null($class))
+		{
+			$class = "EPF\API\Entity";
+		}
+		elseif(!is_subclass_of($class, "EPF\API\Entity"))
+		{
+			throw new \Error($class ." is not an Entity");
+		}
+		
+		$entity = new $class();
+		$entity->init($this, $name);
 		
 		return $entity;
 	}

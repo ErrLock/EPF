@@ -107,6 +107,21 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
+	protected function init(Server $root, string $name)
+	{
+		$this->set_root($root);
+		$this->set_name($name);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
 	private function get_uri()
 	{
 		$root = $this->get_root();
@@ -215,12 +230,26 @@ class Entity
 	 */
 	public function getChild(string $name)
 	{
-		if(!array_key_exists($name, $this->children))
+		if(!$this->childExists($name))
 		{
 			throw new \Error("Invalid path: ". $name);
 		}
 		
 		return $this->children[$name];
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function childExists(string $name)
+	{
+		return array_key_exists($name, $this->children);
 	}
 	
 	/**
@@ -259,7 +288,7 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	private function set_parent(Entity $parent)
+	protected function set_parent(Entity $parent)
 	{
 		if(isset($this->parent))
 		{

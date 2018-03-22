@@ -32,6 +32,66 @@ require_once("EPF/Autoload.php");
 
 use PHPUnit\Framework\TestCase;
 
+class EntityPlayer extends Entity
+{
+	protected function set_parent(Entity $parent)
+	{
+		parent::set_parent($parent);
+		
+		$root = $this->get_root();
+		$friends = $root->createEntity("friends");
+		$this->appendChild($friends);
+	}
+}
+
+class EntityPlayerList extends Entity
+{
+	private $all_children = array(
+		"player1",
+		"player2"
+	);
+	
+	public function childExists(string $name)
+	{
+		/*
+		 * Create child when asked
+		 */
+		$result = parent::childExists($name);
+		if(!$result && in_array($name, $this->all_children))
+		{
+			$root = $this->get_root();
+			$child = $root->createEntity($name, EntityPlayer::class);
+			$this->appendChild($child);
+			$result = parent::childExists($name);
+		}
+		
+		return $result;
+	}
+	
+	protected function get_dom()
+	{
+		/*
+		 * We fully populate the dom only if asked for it
+		 */
+		foreach($this->all_children as $child_name)
+		{
+			$this->childExists($child_name);
+		}
+		
+		return parent::get_dom();
+	}
+}
+
+class ServerFromClass extends Server
+{
+	public function __construct()
+	{
+		parent::__construct();
+		$players = $this->createEntity("players", EntityPlayerList::class);
+		$this->appendChild($players);
+	}
+}
+
 /**
  * @brief Autoload test
  */
@@ -59,6 +119,30 @@ final class ServerTest extends TestCase
 		$player_2_friends = $api->createEntity("friends");
 		$player_2->appendChild($player_2_friends);
 		
+		$this->api_check($api);
+	}
+	
+	/**
+	 * @brief Test class generated api
+	 */
+	public function testFromClass()
+	{
+		$api = new ServerFromClass();
+		
+		$this->api_check($api);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function api_check(Server $api)
+	{
 		$expected = new \DomDocument();
 		$expected->preserveWhiteSpace = false;
 		
