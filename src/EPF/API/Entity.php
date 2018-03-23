@@ -50,7 +50,19 @@ class Entity
 	 */
 	public function __construct(string $name)
 	{
-		$this->set_name($name);
+		$this->name = $name;
+		
+		$this->dom = new \DomDocument();
+		$this->dom->loadXML(
+			'<?xml version="1.0" encoding="utf-8"?>'.
+			'<entity />',
+			LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
+		);
+		
+		// Those should always be first
+		$this->set_property("@index", $this);
+		$this->set_property("@self", $this);
+		$this->set_property("@collection", null);
 	}
 	
 	/**
@@ -64,7 +76,9 @@ class Entity
 	 */
 	public function __toString()
 	{
-		return $this->getDOM()->saveXML();
+		$dom = $this->getDOM();
+		$dom->formatOutput = true;
+		return $dom->saveXML();
 	}
 	
 	/**
@@ -84,8 +98,8 @@ class Entity
 			throw new \Error(self::class ."::". $method ." doesn't exists");
 		}
 		
-		// This is our friend
-		if(is_a($caller, 'EPF\API\Server'))
+		// These can call us, on certain conditions
+		if(!is_a($caller, 'EPF\API\Entity', true))
 		{
 			throw new \Error("Call to ". self::class ."::". $method .
 			" not allowed from ". $caller);
@@ -94,9 +108,12 @@ class Entity
 		$allowed = false;
 		switch($method)
 		{
-			case "set_api":
 			case "set_property":
-				$allowed = true;
+				// only ourself can set @ properties
+				$allowed = ($args[0][0] != "@");
+				break;
+			case "set_api":
+				$allowed = ($caller == 'EPF\API\Server');
 				break;
 		}
 		
@@ -201,13 +218,16 @@ class Entity
 		}
 		
 		$this->api = $api;
-		foreach($this->properties as $prop)
+		
+		foreach($this->properties as $name => $prop)
 		{
-			if(is_a($prop, self::class))
+			if($name[0] != "@" && $this->get_property_type($prop) == 'entity')
 			{
 				$prop->set_api($api);
 			}
 		}
+		
+		$this->dom_update();
 	}
 	
 	/**
@@ -227,6 +247,16 @@ class Entity
 		}
 		
 		$this->parent = $parent;
+		
+		$api = $parent->getAPI();
+		if(!is_null($api))
+		{
+			$this->set_api($api);
+		}
+		else
+		{
+			$this->dom_update();
+		}
 	}
 	
 	/**
@@ -240,27 +270,19 @@ class Entity
 	 */
 	private function set_property(string $name, $value)
 	{
-		$type = $this->get_property_type($value);
-		$p_type = $type;
-		if($this->hasProperty($name))
-		{
-			/*
-			 * Do not use getProperty,
-			 * we might get stuck in a loop if set_property is used in child class
-			 */
-			$p_type = $this->get_property_type($this->properties[$name]);
-			if($type != $p_type)
-			{
-				throw new \Error("Type mismatch: ". $type ." != ". $p_type);
-			}
-		}
+		$this->set_property_check($name, $value);
 		
-		if($type == "entity")
+		if(
+			$this->get_property_type($value) == "entity"
+			&& $value !== $this
+			&& $name[0] != "@"
+		)
 		{
-			$this->entity_init($value);
+			$value->set_parent($this);
 		}
 		
 		$this->properties[$name] = $value;
+		$this->dom_set_property($name, $value);
 	}
 	
 	/**
@@ -272,23 +294,33 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	private function entity_init(Entity $entity)
+	private function set_property_check(string $name, $value)
 	{
-		$p_api = $entity->getAPI();
-		$api = $this->getAPI();
-		if(is_null($p_api))
+		$set_type = $this->get_property_type($value);
+		// Only collection can be set to NULL, and only the first time
+		if(
+			$set_type == 'NULL'
+			&& ($name != "@collection" || $this->hasProperty($name))
+		)
 		{
-			if(!is_null($api))
-			{
-				$entity->set_api($api);
-			}
-		}
-		elseif($p_api != $api)
-		{
-			throw new \Error("Entities are not from the same API");
+			throw new \Error("NULL value");
 		}
 		
-		$entity->set_parent($this);
+		if($this->hasProperty($name))
+		{
+			/*
+			 * Do not use getProperty,
+			 * we might get stuck in a loop if set_property is used in child
+			 * class
+			 */
+			$get_type = $this->get_property_type($this->properties[$name]);
+			if($get_type != 'NULL' && $set_type != $get_type)
+			{
+				throw new \Error(
+					"Type mismatch: ". $set_type ." != ". $get_type
+				);
+			}
+		}
 	}
 	
 	/**
@@ -302,28 +334,28 @@ class Entity
 	 */
 	public function getDOM()
 	{
-		if(!isset($this->dom))
-		{
-			$this->dom_init();
-		}
+		// Get all our properties
+		$this->populate();
 		
 		// Clone it, only us should modify it
 		$dom = clone $this->dom;
+		// This looses the ID attributes
+		// Since we won't bother with a DTD (we use XSD)
+		// We need to do that manually
+		foreach($dom->documentElement->childNodes as $node)
+		{
+			$node->setIdAttribute("name", true);
+		}
+		
+		// no parent == no collection
+		if(is_null($this->getParent()))
+		{
+			$dom->documentElement->removeChild(
+				$dom->getElementById("@collection")
+			);
+		}
+		
 		return  $dom;
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function set_name(string $name)
-	{
-		$this->name = $name;
 	}
 	
 	/**
@@ -378,90 +410,96 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	private function dom_init()
+	private function dom_set_property(string $name, $value)
 	{
-		$this->dom = new \DomDocument();
-		$this->dom->loadXML(
-			'<?xml version="1.0" encoding="utf-8"?><entity />',
-			LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
-		);
-		
-		$api = $this->getAPI();
-		if(!is_null($api))
+		$node = $this->dom->getElementById($name);
+		if(is_null($node))
 		{
-			$this->dom_add_property("index", $api);
-		}
-		$this->dom_add_property("self", $this);
-		
-		$parent = $this->getParent();
-		if(!is_null($parent))
-		{
-			$this->dom_add_property("collection", $parent);
+			return $this->dom_create_property($name, $value);
 		}
 		
-		// populate
-		$this->populate();
-		
-		foreach($this->properties as $name => $value)
-		{
-			$this->dom_add_property($name, $value);
-		}
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function dom_create_link(string $name, Entity $entity)
-	{
-		$rel = "item";
-		if($entity == $this->getAPI() && $name == "index")
-		{
-			$rel = "index";
-		}
-		elseif($entity == $this)
-		{
-			$rel = "self";
-		}
-		elseif($entity == $this->getParent())
-		{
-			$rel = "collection";
-		}
-		
-		$node = $this->dom->createElement("link");
-		$node->setAttribute("rel", $rel);
-		$node->setAttribute("href", $entity->getURI());
-		
-		return $node;
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function dom_add_property(string $name, $value)
-	{
-		$node = null;
-		$type = $this->get_property_type($value);
-		switch($type)
+		switch($this->get_property_type($value))
 		{
 			case "entity":
-				$node = $this->dom_create_link($name, $value);
+				$node->setAttribute("href", $value->getURI());
 				break;
-			case "string":
-				$node = $this->dom->createElement($type, $value);
+			default:
+				$node->nodeValue = $value;
 				break;
 		}
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function dom_update()
+	{
+		foreach($this->dom->getElementsByTagName("link") as $node)
+		{
+			$target = null;
+			$name = $node->getAttribute("name");
+			switch($name)
+			{
+				case "@index":
+					$target = $this->getAPI();
+					break;
+				case "@self":
+					$target = $this;
+					break;
+				case "@collection":
+					$target = $this->getParent();
+					break;
+				default:
+					$target = $this->getProperty($name);
+					break;
+			}
+			
+			if(!is_null($target))
+			{
+				$node->setAttribute("href", $target->getURI());
+			}
+		}
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function dom_create_property(string $name, $value)
+	{
+		$node = null;
+		switch($this->get_property_type($value))
+		{
+			case "NULL":
+			case "entity":
+				$node = $this->dom->createElement("link");
+				$rel = "item";
+				if($name[0] === "@")
+				{
+					$rel = substr($name, 1);
+				}
+				$node->setAttribute("rel", $rel);
+				if(!is_null($value))
+				{
+					$node->setAttribute("href", $value->getURI());
+				}
+				break;
+			case "string":
+				$node = $this->dom->createElement("string", $value);
+				break;
+		}
+		
 		$node->setAttribute("name", $name);
 		$node->setIdAttribute("name", true);
 		
@@ -490,6 +528,7 @@ class Entity
 				$type = "entity";
 				break;
 			case "string":
+			case 'NULL':
 				break;
 			default:
 				throw new \Error("Invalid type: ". $type);

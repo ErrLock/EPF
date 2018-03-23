@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <entity>
-	<link rel="index" name="index" href="/" />
-	<link rel="self" name="self" href="/" />
+	<link rel="index" name="@index" href="/" />
+	<link rel="self" name="@self" href="/" />
 	<link href="/players" name="players" rel="item"/>
 </entity>

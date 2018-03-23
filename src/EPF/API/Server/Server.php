@@ -93,6 +93,7 @@ class Server extends Entity
 		 * 
 		 * > Note: this is a clone of the Entity::$dom
 		 */
+		$dom->formatOutput = true;
 		
 		return $dom;
 	}
@@ -108,7 +109,7 @@ class Server extends Entity
 	 */
 	public function getURI()
 	{
-		return  $this->uri;
+		return $this->uri;
 	}
 }
 ?>
