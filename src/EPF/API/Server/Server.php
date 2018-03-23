@@ -47,7 +47,7 @@ class Server extends Entity
 	public function __construct()
 	{
 		parent::__construct("index");
-		$this->set_api($this);
+		$this->set_property("@index", $this);
 	}
 	
 	/**

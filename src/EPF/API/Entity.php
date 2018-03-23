@@ -35,8 +35,6 @@ class Entity
 {
 	private $dom = null;
 	private $name = null;
-	private $api = null;
-	private $parent = null;
 	private $properties = array(); /**< Desc */
 	
 	/**
@@ -52,17 +50,8 @@ class Entity
 	{
 		$this->name = $name;
 		
-		$this->dom = new \DomDocument();
-		$this->dom->loadXML(
-			'<?xml version="1.0" encoding="utf-8"?>'.
-			'<entity />',
-			LIBXML_HTML_NOIMPLIED | LIBXML_HTML_NODEFDTD
-		);
-		
-		// Those should always be first
-		$this->set_property("@index", $this);
+		$this->dom = new DOM\Entity($this);
 		$this->set_property("@self", $this);
-		$this->set_property("@collection", null);
 	}
 	
 	/**
@@ -76,9 +65,7 @@ class Entity
 	 */
 	public function __toString()
 	{
-		$dom = $this->getDOM();
-		$dom->formatOutput = true;
-		return $dom->saveXML();
+		return $this->getDOM()->saveXML();
 	}
 	
 	/**
@@ -109,11 +96,7 @@ class Entity
 		switch($method)
 		{
 			case "set_property":
-				// only ourself can set @ properties
-				$allowed = ($args[0][0] != "@");
-				break;
-			case "set_api":
-				$allowed = ($caller == 'EPF\API\Server');
+				$allowed = ($args[0][0] != "@" || $caller == 'EPF\API\Server');
 				break;
 		}
 		
@@ -149,34 +132,6 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function getParent()
-	{
-		return $this->parent;
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function getAPI()
-	{
-		return $this->api;
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
 	public function getProperty(string $name)
 	{
 		if(!$this->hasProperty($name))
@@ -185,6 +140,20 @@ class Entity
 		}
 		
 		return $this->properties[$name];
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getProperties()
+	{
+		return $this->properties;
 	}
 	
 	/**
@@ -210,79 +179,75 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	private function set_api(Server $api)
-	{
-		if(isset($this->api))
-		{
-			throw new \Error("API already set");
-		}
-		
-		$this->api = $api;
-		
-		foreach($this->properties as $name => $prop)
-		{
-			if($name[0] != "@" && $this->get_property_type($prop) == 'entity')
-			{
-				$prop->set_api($api);
-			}
-		}
-		
-		$this->dom_update();
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function set_parent(Entity $parent)
-	{
-		if(isset($this->parent))
-		{
-			throw new \Error("Parent already set");
-		}
-		
-		$this->parent = $parent;
-		
-		$api = $parent->getAPI();
-		if(!is_null($api))
-		{
-			$this->set_api($api);
-		}
-		else
-		{
-			$this->dom_update();
-		}
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
 	private function set_property(string $name, $value)
 	{
 		$this->set_property_check($name, $value);
 		
-		if(
-			$this->get_property_type($value) == "entity"
-			&& $value !== $this
-			&& $name[0] != "@"
-		)
+		if(is_a($value, self::class) && $name[0] != "@")
 		{
-			$value->set_parent($this);
+			$value->set_property("@collection", $this);
 		}
 		
 		$this->properties[$name] = $value;
-		$this->dom_set_property($name, $value);
+		$this->dom->setProperty($name, $value);
+		
+		switch($name)
+		{
+			case "@index":
+				foreach($this->properties as $p_name => $prop)
+				{
+					if($p_name[0] != "@" && is_a($prop, self::class))
+					{
+						$prop->set_property($name, $value);
+					}
+				}
+				break;
+			case "@collection":
+				$api = $value->getProperty("@index");
+				if(!is_null($api))
+				{
+					$this->set_property("@index", $api);
+				}
+		}
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public static function getPropertyType($value)
+	{
+		$type = gettype($value);
+		$valid = false;
+		switch($type)
+		{
+			case "object":
+				if(is_a($value, 'EPF\API\Entity'))
+				{
+					$valid = true;
+					$type = "link";
+				}
+				break;
+			case "double":
+				$type = "float";
+			case "boolean":
+			case "integer":
+			case "string":
+				$valid = true;
+				break;
+		}
+		
+		if(!$valid)
+		{
+			throw new \Error("Invalid type: ". $type);
+		}
+		
+		return $type;
 	}
 	
 	/**
@@ -296,25 +261,23 @@ class Entity
 	 */
 	private function set_property_check(string $name, $value)
 	{
-		$set_type = $this->get_property_type($value);
-		// Only collection can be set to NULL, and only the first time
-		if(
-			$set_type == 'NULL'
-			&& ($name != "@collection" || $this->hasProperty($name))
-		)
-		{
-			throw new \Error("NULL value");
-		}
-		
+		$set_type = self::getPropertyType($value);
 		if($this->hasProperty($name))
 		{
+			switch($name)
+			{
+				case "@index":
+				case "@collection":
+					throw new \Error("Property ". $name ." already set");
+					break;
+			}
 			/*
 			 * Do not use getProperty,
 			 * we might get stuck in a loop if set_property is used in child
 			 * class
 			 */
-			$get_type = $this->get_property_type($this->properties[$name]);
-			if($get_type != 'NULL' && $set_type != $get_type)
+			$get_type = self::getPropertyType($this->properties[$name]);
+			if($set_type != $get_type)
 			{
 				throw new \Error(
 					"Type mismatch: ". $set_type ." != ". $get_type
@@ -339,21 +302,6 @@ class Entity
 		
 		// Clone it, only us should modify it
 		$dom = clone $this->dom;
-		// This looses the ID attributes
-		// Since we won't bother with a DTD (we use XSD)
-		// We need to do that manually
-		foreach($dom->documentElement->childNodes as $node)
-		{
-			$node->setIdAttribute("name", true);
-		}
-		
-		// no parent == no collection
-		if(is_null($this->getParent()))
-		{
-			$dom->documentElement->removeChild(
-				$dom->getElementById("@collection")
-			);
-		}
 		
 		return  $dom;
 	}
@@ -369,7 +317,7 @@ class Entity
 	 */
 	public function getURI()
 	{
-		$parent = $this->getParent();
+		$parent = $this->getProperty("@collection");
 		$name = $this->getName();
 		
 		if(is_null($parent))
@@ -399,143 +347,6 @@ class Entity
 	public function hasProperty(string $name)
 	{
 		return array_key_exists($name, $this->properties);
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function dom_set_property(string $name, $value)
-	{
-		$node = $this->dom->getElementById($name);
-		if(is_null($node))
-		{
-			return $this->dom_create_property($name, $value);
-		}
-		
-		switch($this->get_property_type($value))
-		{
-			case "entity":
-				$node->setAttribute("href", $value->getURI());
-				break;
-			default:
-				$node->nodeValue = $value;
-				break;
-		}
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function dom_update()
-	{
-		foreach($this->dom->getElementsByTagName("link") as $node)
-		{
-			$target = null;
-			$name = $node->getAttribute("name");
-			switch($name)
-			{
-				case "@index":
-					$target = $this->getAPI();
-					break;
-				case "@self":
-					$target = $this;
-					break;
-				case "@collection":
-					$target = $this->getParent();
-					break;
-				default:
-					$target = $this->getProperty($name);
-					break;
-			}
-			
-			if(!is_null($target))
-			{
-				$node->setAttribute("href", $target->getURI());
-			}
-		}
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function dom_create_property(string $name, $value)
-	{
-		$node = null;
-		switch($this->get_property_type($value))
-		{
-			case "NULL":
-			case "entity":
-				$node = $this->dom->createElement("link");
-				$rel = "item";
-				if($name[0] === "@")
-				{
-					$rel = substr($name, 1);
-				}
-				$node->setAttribute("rel", $rel);
-				if(!is_null($value))
-				{
-					$node->setAttribute("href", $value->getURI());
-				}
-				break;
-			case "string":
-				$node = $this->dom->createElement("string", $value);
-				break;
-		}
-		
-		$node->setAttribute("name", $name);
-		$node->setIdAttribute("name", true);
-		
-		$this->dom->documentElement->appendChild($node);
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function get_property_type($value)
-	{
-		$type = gettype($value);
-		switch($type)
-		{
-			case "object":
-				if(!is_a($value, self::class))
-				{
-					throw new \Error("Invalid type: ". get_class($value));
-				}
-				$type = "entity";
-				break;
-			case "string":
-			case 'NULL':
-				break;
-			default:
-				throw new \Error("Invalid type: ". $type);
-				break;
-		}
-		
-		return $type;
 	}
 }
 ?>
