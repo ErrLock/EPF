@@ -1,6 +1,6 @@
 <?php
 /**
- * @file Server.php
+ * @file EntityRef.php
  * 
  * @copyright ISC License
  * @parblock
@@ -31,10 +31,10 @@ namespace EPF\API;
  * @brief 
  * @details 
  */
-class Server extends Entity
+class EntityRef extends Entity
 {
-	private $uri = "/";
-	
+	private $target = null;
+	private $up = null;
 	/**
 	 * @brief 
 	 * 
@@ -44,10 +44,9 @@ class Server extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function __construct()
+	public function __construct(Entity $target)
 	{
-		parent::__construct("index");
-		$this->set_property("@index", $this);
+		$this->target = $target;
 	}
 	
 	/**
@@ -59,33 +58,10 @@ class Server extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function GET(string $path = '/', string $media = 'application/xml')
+	public function getDOM()
 	{
-		if($media != 'application/xml')
-		{
-			throw new \Error("Unknow media type: ". $media);
-		}
-	
-		if(strpos($path, '/') !== 0)
-		{
-			throw new Error("Path must be absolute");
-		}
-		
-		$path = substr($path, 1);
-		$result = $this;
-		if(!empty($path))
-		{
-			$path = explode('/', $path);
-			foreach($path as $name)
-			{
-				$result = $result->getProperty($name);
-				if(!is_a($result, 'EPF\API\Entity'))
-				{
-					throw new \Error($name ." is not an entity");
-				}
-			}
-		}
-		
+		$result = $this->target->getDOM();
+		$result->setProperty("@up", $this->up);
 		return $result;
 	}
 	
@@ -98,9 +74,41 @@ class Server extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function getURI()
+	public function getProperty(string $name)
 	{
-		return $this->uri;
+		if($name == "@up")
+		{
+			return $this->up;
+		}
+		
+		return $this->target->getProperty($name);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	protected function set_property(string $name, $value)
+	{
+		if($name != "@collection")
+		{
+			throw new \error("Trying to set ". $name ." on ". get_class($this));
+		}
+		if(!is_a($value, parent::class))
+		{
+			throw new \Error("Invalid type");
+		}
+		if($value->getIndex() !== $this->target->getIndex())
+		{
+			throw new \Error("Different API");
+		}
+		
+		$this->up = $value;
 	}
 }
 ?>

@@ -79,14 +79,15 @@ class Entity
 	 */
 	public function __call(string $method, array $args)
 	{
-		$caller = debug_backtrace(null, 2)[1]["class"];
 		if(!method_exists(self::class, $method))
 		{
 			throw new \Error(self::class ."::". $method ." doesn't exists");
 		}
 		
+		$caller = debug_backtrace(null, 2)[1]["class"];
+		
 		// These can call us, on certain conditions
-		if(!is_a($caller, 'EPF\API\Entity', true))
+		if(!is_a($caller, self::class, true))
 		{
 			throw new \Error("Call to ". self::class ."::". $method .
 			" not allowed from ". $caller);
@@ -179,7 +180,7 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	private function set_property(string $name, $value)
+	protected function set_property(string $name, $value)
 	{
 		$this->set_property_check($name, $value);
 		
@@ -203,7 +204,8 @@ class Entity
 				}
 				break;
 			case "@collection":
-				$api = $value->getProperty("@index");
+				$this->set_property("@up", $value);
+				$api = $value->getIndex();
 				if(!is_null($api))
 				{
 					$this->set_property("@index", $api);
@@ -227,7 +229,7 @@ class Entity
 		switch($type)
 		{
 			case "object":
-				if(is_a($value, 'EPF\API\Entity'))
+				if(is_a($value, self::class))
 				{
 					$valid = true;
 					$type = "link";
@@ -264,12 +266,9 @@ class Entity
 		$set_type = self::getPropertyType($value);
 		if($this->hasProperty($name))
 		{
-			switch($name)
+			if($name[0] == "@")
 			{
-				case "@index":
-				case "@collection":
-					throw new \Error("Property ". $name ." already set");
-					break;
+				throw new \Error("Property ". $name ." already set");
 			}
 			/*
 			 * Do not use getProperty,
@@ -284,6 +283,34 @@ class Entity
 				);
 			}
 		}
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getCollection()
+	{
+		return $this->getProperty("@collection");
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getIndex()
+	{
+		return $this->getProperty("@index");
 	}
 	
 	/**
