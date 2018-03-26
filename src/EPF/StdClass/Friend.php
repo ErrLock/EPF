@@ -38,13 +38,11 @@ trait Friend
 	
 	public function __construct()
 	{
-		echo __METHOD__ ."\n";
 		self::_friend_init();
 	}
 	
 	private static function _friend_init()
 	{
-		echo __METHOD__ ." for ". self::class ."\n";
 		// Good usage
 		$caller = debug_backtrace(null, 2)[1];
 		if(
@@ -133,12 +131,11 @@ trait Friend
 	
 	private static function _friend_config()
 	{
-		echo __METHOD__ ."\n";
+
 	}
 	
 	private static function _friend(string $class)
 	{
-		echo __METHOD__ ."(". $class .")\n";
 		/*
 		 * Good usage
 		 * Debug backtrace is not that costly here
@@ -170,7 +167,6 @@ trait Friend
 	
 	private static function _friend_check_access(string $type, string $name)
 	{
-		echo __METHOD__ ."(". $name .")\n";
 		$class = static::class;
 		
 		$exists = $type .'_exists';
@@ -231,14 +227,12 @@ trait Friend
 	
 	public function __get(string $name)
 	{
-		echo __METHOD__ ."(". $name .")\n";
 		self::_friend_check_access('property', $name);
 		return $this->$name;
 	}
 	
 	public function __call(string $name, array $args)
 	{
-		echo __METHOD__ ."(". $name .")\n";
 		self::_friend_check_access('method', $name);
 		return call_user_func_array(array($this, $name), $args);
 	}
