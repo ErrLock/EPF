@@ -44,7 +44,7 @@ trait Friend
 	
 	private static function _friend_init()
 	{
-		echo __METHOD__ ."\n";
+		echo __METHOD__ ." for ". self::class ."\n";
 		// Good usage
 		$caller = debug_backtrace(null, 2)[1];
 		if(
@@ -66,57 +66,68 @@ trait Friend
 		}
 		
 		// Initialize our (maybe derived) class
-		self::_friend_build_cache();
+		if(!isset(self::$_friend_cache[static::class]))
+		{
+			self::_friend_build_cache();
+		}
 	}
 	
-	private static function _friend_build_cache(string $class = null)
+	private static function _friend_build_cache(
+		array $list = null,
+		string $type = null
+	)
 	{
-		if(is_null($class))
-		{
-			$class = static::class;
-		}
-		
-		if(isset(self::$_friend_cache[$class]))
-		{
-			return;
-		}
-		
 		/*
 		 * Build a cache of our protected members
 		 * so that we don't have to use ReflectionClass every time we need to
 		 * check friendship access
 		 */
-		self::$_friend_cache[$class] = array(
-			'methods' => array(),
-			'properties' => array()
-		);
-		$cache =& self::$_friend_cache[$class];
-		$auth = ($class == self::class);
-				
-		$ref = new \ReflectionClass(static::class);
-		foreach($ref->getMethods(\ReflectionMethod::IS_PROTECTED) as $value)
+		if(is_null($list))
 		{
-			$v_class = $value->class;
-			if($v_class != $class)
-			{
-				self::_friend_build_cache($v_class);
-				continue;
-			}
+			$ref = new \ReflectionClass(static::class);
+			self::_friend_build_cache(
+				$ref->getProperties(
+					\ReflectionProperty::IS_PROTECTED |
+					\ReflectionProperty::IS_PRIVATE
+				),
+				'property'
+			);
+			self::_friend_build_cache(
+				$ref->getMethods(
+					\ReflectionMethod::IS_PROTECTED |
+					\ReflectionMethod::IS_PRIVATE
+				),
+				'method'
+			);
 			
-			$v_name = $value->name;
-			$cache['methods'][$v_name] = $auth;
+			return;
 		}
-		foreach($ref->getProperties(\ReflectionProperty::IS_PROTECTED) as $value)
+		
+		foreach($list as $value)
 		{
-			$v_class = $value->class;
-			if($v_class != $class)
+			$class = $value->class;
+			if(!isset(self::$_friend_cache[$class]))
 			{
-				self::_friend_build_cache($v_class);
+				self::$_friend_cache[$class] = array(
+					'property' => array(),
+					'method' => array()
+				);
+			}
+			$cache =& self::$_friend_cache[$class][$type];
+			
+			$name = $value->name;
+			if(strpos($name, '_friend') === 0)
+			{
 				continue;
 			}
-			
-			$v_name = $value->name;
-			$cache['properties'][$v_name] = $auth;
+			$access = ($value->isPrivate() ? 'private' : 'protected');
+			if(!isset($cache[$name]))
+			{
+				$cache[$name] = array(
+					'access' => $access,
+					'auth' => is_a(self::class, $class, true)
+				);
+			}
 		}
 	}
 	
@@ -157,43 +168,79 @@ trait Friend
 		self::$_friend_friendships[$class] = true;
 	}
 	
-	public function __get(string $name)
+	private static function _friend_check_access(string $type, string $name)
 	{
-		echo "GET ". $name ."\n";
+		echo __METHOD__ ."(". $name .")\n";
 		$class = static::class;
 		
-		if(!property_exists($class, $name))
+		$exists = $type .'_exists';
+		if(!$exists($class, $name))
 		{
-			return null;
+			throw new \Error("Undefined ". $type .": ". $class ."::". $name);
 		}
 		
-		$cache = self::$_friend_cache[$class];
-		if(!isset($cache['properties'][$name]))
+		do
 		{
-			// First check the property is protected, avoids a costly call to
-			// debug_backtrace
-			throw new \Error(
-				"Cannot access private property ". $class ."::\$". $name
-			);
+			if(!isset(self::$_friend_cache[$class]))
+			{
+				throw new \Error($class ." not in Friends cache");
+			}
+			
+			$cache = self::$_friend_cache[$class];
+			if(!isset($cache[$type][$name]))
+			{
+				$class = get_parent_class($class);
+				continue;
+			}
+			
+			$value = $cache[$type][$name];
+			if($value['access'] == 'private')
+			{
+				throw new \Error(
+					"Cannot access private ". $type ." ".
+					$class ."::". $name
+				);
+			}
+			if(!$value['auth'])
+			{
+				throw new \Error(
+					"Cannot access protected ". $type ." ".
+					$class ."::". $name
+				);
+			}
+			
+			$caller = debug_backtrace(null, 3)[2]['class'];
+			if(empty($caller) || !isset(self::$_friend_friendships[$caller]))
+			{
+				// Not a friend
+				throw new \Error(
+					"Cannot access protected ". $type ." ".
+					$class ."::". $name
+				);
+			}
+			
+			return true;
 		}
-		elseif($class != self::class)
-		{
-			// protected, but not ours
-			throw new \Error(
-				"Cannot access protected property ". $class ."::\$". $name
-			);
-		}
+		while($class);
 		
-		$caller = debug_backtrace(null, 2)[1]['class'];
-		if(empty($caller) || !isset(self::$_friend_friendships[$caller]))
-		{
-			// Not a friend
-			throw new \Error(
-				"Cannot access protected property ". self::class ."::\$". $name
-			);
-		}
-		
+		throw new \Error(
+			$type ." ". static::class ."::". $name ." not found"
+		);
+		return false;
+	}
+	
+	public function __get(string $name)
+	{
+		echo __METHOD__ ."(". $name .")\n";
+		self::_friend_check_access('property', $name);
 		return $this->$name;
+	}
+	
+	public function __call(string $name, array $args)
+	{
+		echo __METHOD__ ."(". $name .")\n";
+		self::_friend_check_access('method', $name);
+		return call_user_func_array(array($this, $name), $args);
 	}
 }
 ?>
