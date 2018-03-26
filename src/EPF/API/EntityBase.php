@@ -1,6 +1,6 @@
 <?php
 /**
- * @file EntityRef.php
+ * @file EntityBase.php
  * 
  * @copyright ISC License
  * @parblock
@@ -27,18 +27,20 @@
 
 namespace EPF\API;
 
-use EPF\StdClass\Friend;
-
 /**
  * @brief 
- * @details 
+ * @details
  */
-class EntityRef extends EntityBase
+abstract class EntityBase
 {
-	use Friend;
+	private $name = null;
 	
-	private $target = null;
-	private $up = null;
+	abstract public function getDOM();
+	abstract public function getProperties();
+	abstract public function getProperty(string $name);
+	abstract public function hasProperty(string $name);
+	abstract protected function setProperty(string $name, $value);
+	
 	/**
 	 * @brief 
 	 * 
@@ -48,11 +50,9 @@ class EntityRef extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	public function __construct(EntityBase $target)
+	public function __construct(string $name)
 	{
-		self::_friend_init();
-		$this->target = $target;
-		parent::__construct($target->getName());
+		$this->name = $name;
 	}
 	
 	/**
@@ -64,9 +64,9 @@ class EntityRef extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	private static function _friend_config()
+	public function __toString()
 	{
-		self::_friend(Entity::class);
+		return $this->getDOM()->saveXML();
 	}
 	
 	/**
@@ -78,11 +78,9 @@ class EntityRef extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	public function getDOM()
+	public function getCollection()
 	{
-		$result = $this->target->getDOM();
-		$result->setProperty("@up", $this->getProperty("@up"));
-		return $result;
+		return $this->getProperty("@collection");
 	}
 	
 	/**
@@ -94,11 +92,9 @@ class EntityRef extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	public function getProperties()
+	public function getIndex()
 	{
-		$result = $this->target->getProperties();
-		$result["@up"] = $this->up;
-		return $result;
+		return $this->getProperty("@index");
 	}
 	
 	/**
@@ -110,14 +106,38 @@ class EntityRef extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	public function getProperty(string $name)
+	public function getName()
 	{
-		if($name == "@up")
+		return $this->name;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getURI()
+	{
+		$parent = $this->getProperty("@collection");
+		$name = $this->getName();
+		
+		if(is_null($parent))
 		{
-			return $this->up;
+			return $name;
 		}
 		
-		return $this->target->getProperty($name);
+		$uri = $parent->getURI();
+		if(strrpos($uri, '/') !== (strlen($uri) -1))
+		{
+			$uri .= "/";
+		}
+		$uri .= $name;
+		
+		return  $uri;
 	}
 	
 	/**
@@ -129,55 +149,52 @@ class EntityRef extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	public function hasProperty(string $name)
+	public static function getPropertyType($value)
 	{
-		if($name == "@up" && isset($this->up))
+		$type = gettype($value);
+		$valid = false;
+		switch($type)
 		{
-			return $this->up;
+			case "object":
+				$type = get_class($value);
+				if(
+					is_a($value, Entity::class) ||
+					is_a($value, EntityRef::class)
+				)
+				{
+					$valid = true;
+					$type = "link";
+				}
+				break;
+			case "double":
+				$type = "float";
+			case "boolean":
+			case "integer":
+			case "string":
+				$valid = true;
+				break;
 		}
 		
-		return $this->target->hasProperty($name);
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	protected function setProperty(string $name, $value)
-	{
-		throw new \Error("Entity references doesn't have properties");
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	final protected function set_property(string $name, $value)
-	{
-		if($name != "@collection")
+		if(!$valid)
 		{
-			throw new \error("Trying to set ". $name ." on ". get_class($this));
-		}
-		if(!is_a($value, parent::class))
-		{
-			throw new \Error("Invalid type");
-		}
-		if($value->getIndex() !== $this->target->getIndex())
-		{
-			throw new \Error("Different API");
+			throw new \Error("Invalid type: ". $type);
 		}
 		
-		$this->up = $value;
+		return $type;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	protected function populate()
+	{
+	
 	}
 }
 ?>

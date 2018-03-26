@@ -31,10 +31,9 @@ namespace EPF\API;
  * @brief 
  * @details 
  */
-class Entity
+class Entity extends EntityBase
 {
 	private $dom = null;
-	private $name = null;
 	private $properties = array(); /**< Desc */
 	
 	/**
@@ -48,80 +47,13 @@ class Entity
 	 */
 	public function __construct(string $name)
 	{
-		$this->name = $name;
-		
 		$this->dom = new DOM\Entity($this);
+		parent::__construct($name);
 		$this->set_property("@self", $this);
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function __toString()
-	{
-		return $this->getDOM()->saveXML();
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function __call(string $method, array $args)
-	{
-		if(!method_exists(self::class, $method))
+		if(is_a($this, Server::class))
 		{
-			throw new \Error(self::class ."::". $method ." doesn't exists");
+			$this->set_property("@index", $this);
 		}
-		
-		$caller = debug_backtrace(null, 2)[1]["class"];
-		
-		// These can call us, on certain conditions
-		if(!is_a($caller, self::class, true))
-		{
-			throw new \Error("Call to ". self::class ."::". $method .
-			" not allowed from ". $caller);
-		}
-		
-		$allowed = false;
-		switch($method)
-		{
-			case "set_property":
-				$allowed = ($args[0][0] != "@" || $caller == 'EPF\API\Server');
-				break;
-		}
-		
-		if(!$allowed)
-		{
-			throw new \Error("Call to ". self::class ."::". $method .
-			" not allowed from ". $caller);
-		}
-		
-		return call_user_func_array(array($this, $method), $args);
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function getName()
-	{
-		return $this->name;
 	}
 	
 	/**
@@ -166,9 +98,14 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	protected function populate()
+	final protected function setProperty(string $name, $value)
 	{
-	
+		if($name[0] == "@")
+		{
+			throw new \Error("Cannot set special properties");
+		}
+		
+		return $this->set_property($name, $value);
 	}
 	
 	/**
@@ -180,11 +117,11 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	protected function set_property(string $name, $value)
+	private function set_property(string $name, $value)
 	{
-		$this->set_property_check($name, $value);
+		$type = $this->set_property_check($name, $value);
 		
-		if(is_a($value, self::class) && $name[0] != "@")
+		if($type == 'link' && $name[0] != "@")
 		{
 			$value->set_property("@collection", $this);
 		}
@@ -222,45 +159,6 @@ class Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public static function getPropertyType($value)
-	{
-		$type = gettype($value);
-		$valid = false;
-		switch($type)
-		{
-			case "object":
-				if(is_a($value, self::class))
-				{
-					$valid = true;
-					$type = "link";
-				}
-				break;
-			case "double":
-				$type = "float";
-			case "boolean":
-			case "integer":
-			case "string":
-				$valid = true;
-				break;
-		}
-		
-		if(!$valid)
-		{
-			throw new \Error("Invalid type: ". $type);
-		}
-		
-		return $type;
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
 	private function set_property_check(string $name, $value)
 	{
 		$set_type = self::getPropertyType($value);
@@ -283,34 +181,8 @@ class Entity
 				);
 			}
 		}
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function getCollection()
-	{
-		return $this->getProperty("@collection");
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function getIndex()
-	{
-		return $this->getProperty("@index");
+		
+		return $set_type;
 	}
 	
 	/**
@@ -331,35 +203,6 @@ class Entity
 		$dom = clone $this->dom;
 		
 		return  $dom;
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function getURI()
-	{
-		$parent = $this->getProperty("@collection");
-		$name = $this->getName();
-		
-		if(is_null($parent))
-		{
-			return $name;
-		}
-		
-		$uri = $parent->getURI();
-		if(strrpos($uri, '/') !== (strlen($uri) -1))
-		{
-			$uri .= "/";
-		}
-		$uri .= $name;
-		
-		return  $uri;
 	}
 	
 	/**
