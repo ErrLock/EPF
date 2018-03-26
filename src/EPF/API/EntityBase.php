@@ -94,7 +94,19 @@ abstract class EntityBase
 	 */
 	public function getIndex()
 	{
-		return $this->getProperty("@index");
+		// @index is the topmost collection
+		$index = $this;
+		$col = null;
+		do
+		{
+			$col = $index->getCollection();
+			if(!isset($col))
+			{
+				return $index;
+			}
+			$index = $col;
+		}
+		while(isset($col));
 	}
 	
 	/**

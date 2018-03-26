@@ -50,10 +50,6 @@ class Entity extends EntityBase
 		$this->dom = new DOM\Entity($this);
 		parent::__construct($name);
 		$this->set_property("@self", $this);
-		if(is_a($this, Server::class))
-		{
-			$this->set_property("@index", $this);
-		}
 	}
 	
 	/**
@@ -69,7 +65,18 @@ class Entity extends EntityBase
 	{
 		if(!$this->hasProperty($name))
 		{
-			return null;
+			switch($name)
+			{
+				case "@index":
+					return $this->getIndex();
+					break;
+				case "@up":
+					return $this->getCollection();
+					break;
+				default:
+					return null;
+					break;
+			}
 		}
 		
 		return $this->properties[$name];
@@ -128,26 +135,6 @@ class Entity extends EntityBase
 		
 		$this->properties[$name] = $value;
 		$this->dom->setProperty($name, $value);
-		
-		switch($name)
-		{
-			case "@index":
-				foreach($this->properties as $p_name => $prop)
-				{
-					if($p_name[0] != "@" && is_a($prop, self::class))
-					{
-						$prop->set_property($name, $value);
-					}
-				}
-				break;
-			case "@collection":
-				$this->set_property("@up", $value);
-				$api = $value->getIndex();
-				if(!is_null($api))
-				{
-					$this->set_property("@index", $api);
-				}
-		}
 	}
 	
 	/**
@@ -201,6 +188,14 @@ class Entity extends EntityBase
 		
 		// Clone it, only us should modify it
 		$dom = clone $this->dom;
+		
+		$dom->setProperty("@index", $this->getIndex());
+		
+		$up = $this->getCollection();
+		if(isset($up))
+		{
+			$dom->setProperty("@up", $up);
+		}
 		
 		return  $dom;
 	}

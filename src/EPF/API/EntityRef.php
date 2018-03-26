@@ -39,6 +39,7 @@ class EntityRef extends EntityBase
 	
 	private $target = null;
 	private $up = null;
+	
 	/**
 	 * @brief 
 	 * 
@@ -167,6 +168,10 @@ class EntityRef extends EntityBase
 		if($name != "@collection")
 		{
 			throw new \error("Trying to set ". $name ." on ". get_class($this));
+		}
+		if(isset($this->up))
+		{
+			throw new \Error("@up already set");
 		}
 		if(!is_a($value, parent::class))
 		{
