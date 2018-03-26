@@ -27,14 +27,19 @@
 
 namespace EPF\API;
 
+use EPF\StdClass\Friend;
+
 /**
  * @brief 
  * @details 
  */
-class EntityRef extends Entity
+class EntityRef extends EntityBase
 {
+	use Friend;
+	
 	private $target = null;
 	private $up = null;
+	
 	/**
 	 * @brief 
 	 * 
@@ -44,9 +49,25 @@ class EntityRef extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function __construct(Entity $target)
+	public function __construct(EntityBase $target)
 	{
+		self::_friend_init();
 		$this->target = $target;
+		parent::__construct($target->getName());
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private static function _friend_config()
+	{
+		self::_friend(Entity::class);
 	}
 	
 	/**
@@ -61,7 +82,23 @@ class EntityRef extends Entity
 	public function getDOM()
 	{
 		$result = $this->target->getDOM();
-		$result->setProperty("@up", $this->up);
+		$result->setProperty("@up", $this->getProperty("@up"));
+		return $result;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getProperties()
+	{
+		$result = $this->target->getProperties();
+		$result["@up"] = $this->up;
 		return $result;
 	}
 	
@@ -93,11 +130,48 @@ class EntityRef extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	protected function set_property(string $name, $value)
+	public function hasProperty(string $name)
+	{
+		if($name == "@up" && isset($this->up))
+		{
+			return $this->up;
+		}
+		
+		return $this->target->hasProperty($name);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	protected function setProperty(string $name, $value)
+	{
+		throw new \Error("Entity references doesn't have properties");
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	final protected function set_property(string $name, $value)
 	{
 		if($name != "@collection")
 		{
 			throw new \error("Trying to set ". $name ." on ". get_class($this));
+		}
+		if(isset($this->up))
+		{
+			throw new \Error("@up already set");
 		}
 		if(!is_a($value, parent::class))
 		{

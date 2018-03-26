@@ -47,7 +47,6 @@ class Server extends Entity
 	public function __construct()
 	{
 		parent::__construct("index");
-		$this->set_property("@index", $this);
 	}
 	
 	/**
@@ -79,7 +78,7 @@ class Server extends Entity
 			foreach($path as $name)
 			{
 				$result = $result->getProperty($name);
-				if(!is_a($result, 'EPF\API\Entity'))
+				if(!is_a($result, EntityBase::class))
 				{
 					throw new \Error($name ." is not an entity");
 				}

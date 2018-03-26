@@ -7,19 +7,46 @@ use EPF\API\Server;
 
 class FriendsList extends Entity
 {
+	private $all_children = array(
+		"player2"
+	);
+	
 	public function __construct(string $name = "friends")
 	{
 		parent::__construct($name);
 	}
 	
-	public function populate()
+	public function getProperty(string $name)
 	{
-		switch($this->getCollection()->getName())
+		/*
+		 * Create child when asked
+		 */
+		$this->check_player($name);
+		
+		return parent::getProperty($name);
+	}
+	
+	protected function populate()
+	{
+		/*
+		 * We fully populate the dom only if asked for it
+		 */
+		parent::populate();
+		foreach($this->all_children as $name)
 		{
-			case "player1":
-				$p2 = $this->getIndex()->GET("/players/player2");
-				$this->set_property($p2->getName(), new EntityRef($p2));
-				break;
+			$this->check_player($name);
+		}
+	}
+	
+	private function check_player(string $name)
+	{
+		if(
+			!$this->hasProperty($name)
+			&& in_array($name, $this->all_children)
+		)
+		{
+			$player = $this->getIndex()->GET("/players/". $name);
+			$this->setProperty($name, new EntityRef($player));
 		}
 	}
 }
@@ -40,8 +67,8 @@ class EntityPlayer extends Entity
 				$displayName = "Player 2";
 				break;
 		}
-		$this->set_property("displayName", $displayName);
-		$this->set_property("friends", new FriendsList());
+		$this->setProperty("displayName", $displayName);
+		$this->setProperty("friends", new FriendsList());
 	}
 }
 
@@ -86,7 +113,7 @@ class EntityPlayerList extends Entity
 			&& in_array($name, $this->all_children)
 		)
 		{
-			$this->set_property($name, new EntityPlayer($name));
+			$this->setProperty($name, new EntityPlayer($name));
 		}
 	}
 }
@@ -97,7 +124,7 @@ class ServerFromClass extends Server
 	{
 		parent::__construct();
 		
-		$this->set_property("players", new EntityPlayerList());
+		$this->setProperty("players", new EntityPlayerList());
 	}
 }
 ?>

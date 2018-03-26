@@ -1,6 +1,6 @@
 <?php
 /**
- * @file Entity.php
+ * @file EntityBase.php
  * 
  * @copyright ISC License
  * @parblock
@@ -29,12 +29,17 @@ namespace EPF\API;
 
 /**
  * @brief 
- * @details 
+ * @details
  */
-class Entity extends EntityBase
+abstract class EntityBase
 {
-	private $dom = null;
-	private $properties = array(); /**< Desc */
+	private $name = null;
+	
+	abstract public function getDOM();
+	abstract public function getProperties();
+	abstract public function getProperty(string $name);
+	abstract public function hasProperty(string $name);
+	abstract protected function setProperty(string $name, $value);
 	
 	/**
 	 * @brief 
@@ -47,9 +52,7 @@ class Entity extends EntityBase
 	 */
 	public function __construct(string $name)
 	{
-		$this->dom = new DOM\Entity($this);
-		parent::__construct($name);
-		$this->set_property("@self", $this);
+		$this->name = $name;
 	}
 	
 	/**
@@ -61,80 +64,92 @@ class Entity extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	public function getProperty(string $name)
+	public function __toString()
 	{
-		if(!$this->hasProperty($name))
+		return $this->getDOM()->saveXML();
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getCollection()
+	{
+		return $this->getProperty("@collection");
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getIndex()
+	{
+		// @index is the topmost collection
+		$index = $this;
+		$col = null;
+		do
 		{
-			switch($name)
+			$col = $index->getCollection();
+			if(!isset($col))
 			{
-				case "@index":
-					return $this->getIndex();
-					break;
-				case "@up":
-					return $this->getCollection();
-					break;
-				default:
-					return null;
-					break;
+				return $index;
 			}
+			$index = $col;
 		}
+		while(isset($col));
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getName()
+	{
+		return $this->name;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getURI()
+	{
+		$parent = $this->getProperty("@collection");
+		$name = $this->getName();
 		
-		return $this->properties[$name];
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function getProperties()
-	{
-		return $this->properties;
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	final protected function setProperty(string $name, $value)
-	{
-		if($name[0] == "@")
+		if(is_null($parent))
 		{
-			throw new \Error("Cannot set special properties");
+			return $name;
 		}
 		
-		return $this->set_property($name, $value);
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function set_property(string $name, $value)
-	{
-		$type = $this->set_property_check($name, $value);
-		
-		if($type == 'link' && $name[0] != "@")
+		$uri = $parent->getURI();
+		if(strrpos($uri, '/') !== (strlen($uri) -1))
 		{
-			$value->set_property("@collection", $this);
+			$uri .= "/";
 		}
+		$uri .= $name;
 		
-		$this->properties[$name] = $value;
-		$this->dom->setProperty($name, $value);
+		return  $uri;
 	}
 	
 	/**
@@ -146,58 +161,38 @@ class Entity extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	private function set_property_check(string $name, $value)
+	public static function getPropertyType($value)
 	{
-		$set_type = self::getPropertyType($value);
-		if($this->hasProperty($name))
+		$type = gettype($value);
+		$valid = false;
+		switch($type)
 		{
-			if($name[0] == "@")
-			{
-				throw new \Error("Property ". $name ." already set");
-			}
-			/*
-			 * Do not use getProperty,
-			 * we might get stuck in a loop if set_property is used in child
-			 * class
-			 */
-			$get_type = self::getPropertyType($this->properties[$name]);
-			if($set_type != $get_type)
-			{
-				throw new \Error(
-					"Type mismatch: ". $set_type ." != ". $get_type
-				);
-			}
+			case "object":
+				$type = get_class($value);
+				if(
+					is_a($value, Entity::class) ||
+					is_a($value, EntityRef::class)
+				)
+				{
+					$valid = true;
+					$type = "link";
+				}
+				break;
+			case "double":
+				$type = "float";
+			case "boolean":
+			case "integer":
+			case "string":
+				$valid = true;
+				break;
 		}
 		
-		return $set_type;
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	public function getDOM()
-	{
-		// Get all our properties
-		$this->populate();
-		
-		// Clone it, only us should modify it
-		$dom = clone $this->dom;
-		
-		$dom->setProperty("@index", $this->getIndex());
-		
-		$up = $this->getCollection();
-		if(isset($up))
+		if(!$valid)
 		{
-			$dom->setProperty("@up", $up);
+			throw new \Error("Invalid type: ". $type);
 		}
 		
-		return  $dom;
+		return $type;
 	}
 	
 	/**
@@ -209,9 +204,9 @@ class Entity extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	public function hasProperty(string $name)
+	protected function populate()
 	{
-		return array_key_exists($name, $this->properties);
+	
 	}
 }
 ?>

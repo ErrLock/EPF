@@ -155,7 +155,6 @@ class Entity extends \DOMDocument
 			$node->setAttribute("href", $uri);
 			switch($node->getAttribute("name"))
 			{
-				case '@index':
 				case '@collection':
 					/*
 					 * Call update if we've been changed
