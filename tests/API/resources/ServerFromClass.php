@@ -2,7 +2,27 @@
 require_once("EPF/Autoload.php");
 
 use EPF\API\Entity;
+use EPF\API\EntityRef;
 use EPF\API\Server;
+
+class FriendsList extends Entity
+{
+	public function __construct(string $name = "friends")
+	{
+		parent::__construct($name);
+	}
+	
+	public function populate()
+	{
+		switch($this->getCollection()->getName())
+		{
+			case "player1":
+				$p2 = $this->getIndex()->GET("/players/player2");
+				$this->set_property($p2->getName(), new EntityRef($p2));
+				break;
+		}
+	}
+}
 
 class EntityPlayer extends Entity
 {
@@ -21,7 +41,7 @@ class EntityPlayer extends Entity
 				break;
 		}
 		$this->set_property("displayName", $displayName);
-		$this->set_property("friends", new Entity("friends"));
+		$this->set_property("friends", new FriendsList());
 	}
 }
 
