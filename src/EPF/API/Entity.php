@@ -47,9 +47,8 @@ class Entity extends EntityBase
 	 */
 	public function __construct(string $name)
 	{
-		$this->dom = new DOM\Entity($this);
+		$this->dom = new DOM\Entity();
 		parent::__construct($name);
-		$this->set_property("@self", $this);
 	}
 	
 	/**
@@ -65,18 +64,7 @@ class Entity extends EntityBase
 	{
 		if(!$this->hasProperty($name))
 		{
-			switch($name)
-			{
-				case "@index":
-					return $this->getIndex();
-					break;
-				case "@up":
-					return $this->getCollection();
-					break;
-				default:
-					return null;
-					break;
-			}
+			return null;
 		}
 		
 		return $this->properties[$name];
@@ -105,14 +93,15 @@ class Entity extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	final protected function setProperty(string $name, $value)
+	protected function setCollection(EntityBase $value)
 	{
-		if($name[0] == "@")
-		{
-			throw new \Error("Cannot set special properties");
-		}
+		parent::setCollection($value);
 		
-		return $this->set_property($name, $value);
+		// Update the dom
+		foreach($this->getProperties() as $name => $prop)
+		{
+			$this->dom->setProperty($name, $prop);
+		}
 	}
 	
 	/**
@@ -124,16 +113,16 @@ class Entity extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	private function set_property(string $name, $value)
+	protected function setProperty(string $name, $value)
 	{
 		$type = $this->set_property_check($name, $value);
 		
-		if($type == 'link' && $name[0] != "@")
-		{
-			$value->set_property("@collection", $this);
-		}
-		
 		$this->properties[$name] = $value;
+		
+		if($type == 'link')
+		{
+			$value->setCollection($this);
+		}
 		$this->dom->setProperty($name, $value);
 	}
 	
@@ -148,17 +137,18 @@ class Entity extends EntityBase
 	 */
 	private function set_property_check(string $name, $value)
 	{
+		if($name[0] == '@')
+		{
+			throw new \Error("'@' properties are reserved for the API");
+		}
+		
 		$set_type = self::getPropertyType($value);
 		if($this->hasProperty($name))
 		{
-			if($name[0] == "@")
-			{
-				throw new \Error("Property ". $name ." already set");
-			}
 			/*
 			 * Do not use getProperty,
-			 * we might get stuck in a loop if set_property is used in child
-			 * class
+			 * we might get stuck in a loop if setProperty is used in child
+			 * class getProperty()
 			 */
 			$get_type = self::getPropertyType($this->properties[$name]);
 			if($set_type != $get_type)
@@ -189,12 +179,14 @@ class Entity extends EntityBase
 		// Clone it, only us should modify it
 		$dom = clone $this->dom;
 		
+		$dom->setProperty("@self", $this);
 		$dom->setProperty("@index", $this->getIndex());
 		
-		$up = $this->getCollection();
-		if(isset($up))
+		$col = $this->getCollection();
+		if(isset($col))
 		{
-			$dom->setProperty("@up", $up);
+			$dom->setProperty("@collection", $col);
+			$dom->setProperty("@up", $col);
 		}
 		
 		return  $dom;
@@ -212,6 +204,20 @@ class Entity extends EntityBase
 	public function hasProperty(string $name)
 	{
 		return array_key_exists($name, $this->properties);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	protected function populate()
+	{
+	
 	}
 }
 ?>

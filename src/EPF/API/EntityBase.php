@@ -34,6 +34,7 @@ namespace EPF\API;
 abstract class EntityBase
 {
 	private $name = null;
+	private $collection = null;
 	
 	abstract public function getDOM();
 	abstract public function getProperties();
@@ -80,7 +81,7 @@ abstract class EntityBase
 	 */
 	public function getCollection()
 	{
-		return $this->getProperty("@collection");
+		return $this->collection;
 	}
 	
 	/**
@@ -96,17 +97,17 @@ abstract class EntityBase
 	{
 		// @index is the topmost collection
 		$index = $this;
-		$col = null;
-		do
+		while(($col = $index->getCollection()) != null)
 		{
-			$col = $index->getCollection();
-			if(!isset($col))
-			{
-				return $index;
-			}
 			$index = $col;
 		}
-		while(isset($col));
+		
+		if(!is_a($index, Server::class))
+		{
+			throw new \Error("Index is not a ". Server::class);
+		}
+		
+		return $index;
 	}
 	
 	/**
@@ -134,7 +135,7 @@ abstract class EntityBase
 	 */
 	public function getURI()
 	{
-		$parent = $this->getProperty("@collection");
+		$parent = $this->getCollection();
 		$name = $this->getName();
 		
 		if(is_null($parent))
@@ -168,11 +169,7 @@ abstract class EntityBase
 		switch($type)
 		{
 			case "object":
-				$type = get_class($value);
-				if(
-					is_a($value, Entity::class) ||
-					is_a($value, EntityRef::class)
-				)
+				if(is_a($value, self::class))
 				{
 					$valid = true;
 					$type = "link";
@@ -204,9 +201,14 @@ abstract class EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	protected function populate()
+	protected function setCollection(EntityBase $value)
 	{
-	
+		if(isset($this->collection))
+		{
+			throw new \Error("Collection already set");
+		}
+		
+		$this->collection = $value;
 	}
 }
 ?>
