@@ -28,12 +28,13 @@
 namespace EPF\API\DOM;
 
 use EPF\API;
+use EPF\XML\DOM\Document;
 
 /**
  * @brief 
  * @details 
  */
-class Entity extends \DOMDocument
+class Entity extends Document
 {
 	/**
 	 * @brief 
@@ -46,9 +47,16 @@ class Entity extends \DOMDocument
 	 */
 	public function __construct()
 	{
-		parent::__construct();
-		$this->formatOutput = true;
-		$this->loadXML('<?xml version="1.0" encoding="utf-8"?><entity />');
+		parent::__construct("application/vnd.errlock.api+entity+xml");
+		$this->loadXML(
+'<?xml version="1.0" encoding="utf-8"?>'.
+'<entity '.
+	'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '.
+	'xsi:schemaLocation="https://schemas.errlock.org/api/xml/entity '.
+		'https://schemas.errlock.org/api/xml/entity.xsd" '.
+	'xmlns="https://schemas.errlock.org/api/xml/entity" '.
+'/>'
+		);
 	}
 	
 	/**
@@ -96,7 +104,9 @@ class Entity extends \DOMDocument
 		
 		switch($type)
 		{
-			case "link":
+			case "resource":
+				$node->setAttribute("type", $value->getType());
+			case "entity":
 				$node->setAttribute("href", $value->getURI());
 				break;
 			default:
@@ -117,11 +127,26 @@ class Entity extends \DOMDocument
 	private function create_property(string $type, string $name)
 	{
 		$node = $this->createElement($type);
-		$this->documentElement->appendChild($node);
+		$node = $this->documentElement->appendChild($node);
 		$node->setAttribute("name", $name);
 		$node->setIdAttribute("name", true);
 		
 		return $node;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function validate()
+	{
+		// We always validate against our internal schema
+		return $this->schemaValidate(__DIR__ .'/../XML/entity.xsd');
 	}
 }
 ?>

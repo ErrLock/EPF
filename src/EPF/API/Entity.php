@@ -119,7 +119,7 @@ class Entity extends EntityBase
 		
 		$this->properties[$name] = $value;
 		
-		if($type == 'link')
+		if($type == 'entity')
 		{
 			$value->setCollection($this);
 		}
@@ -178,6 +178,11 @@ class Entity extends EntityBase
 		
 		// Clone it, only us should modify it
 		$dom = clone $this->dom;
+		
+		if(!$dom->validate())
+		{
+			throw new \Error("Invalid data");
+		}
 		
 		//~ $dom->setProperty("@self", $this);
 		//~ $dom->setProperty("@index", $this->getIndex());

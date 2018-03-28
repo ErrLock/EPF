@@ -3,6 +3,7 @@ require_once("EPF/Autoload.php");
 
 use EPF\API\Entity;
 use EPF\API\EntityRef;
+use EPF\API\Resource;
 use EPF\API\Server;
 
 class FriendsList extends Entity
@@ -60,20 +61,20 @@ class EntityPlayer extends Entity
 	{
 		parent::__construct($name);
 		
-		$a_url = $this->getURI() ."/avatar.png";
+		$a_url = __DIR__ ."/avatar.jpg";
 		switch($this->getName())
 		{
 			case "player1":
 				$this->setProperty("firstName", "Kevin");
 				$this->setProperty("lastName", "Sookocheff");
 				$this->setProperty("pseudonym", "soofaloofa");
-				$this->setProperty("avatar", new Entity($a_url));
+				$this->setProperty("avatar", new Resource($a_url));
 				break;
 			case "player2":
 				$this->setProperty("firstName", "Albert");
 				$this->setProperty("lastName", "Hofmann");
 				$this->setProperty("pseudonym", "bicycleman");
-				$this->setProperty("avatar", new Entity($a_url));
+				$this->setProperty("avatar", new Resource($a_url));
 				break;
 		}
 		$this->setProperty("friends", new FriendsList($name));
@@ -128,9 +129,9 @@ class EntityPlayerList extends Entity
 
 class ServerFromClass extends Server
 {
-	public function __construct()
+	public function __construct(string $uri)
 	{
-		parent::__construct();
+		parent::__construct($uri);
 		
 		$this->setProperty("players", new EntityPlayerList());
 	}
