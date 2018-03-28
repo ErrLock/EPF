@@ -104,6 +104,8 @@ class Entity extends Document
 		
 		switch($type)
 		{
+			case "resource":
+				$node->setAttribute("type", $value->getType());
 			case "entity":
 				$node->setAttribute("href", $value->getURI());
 				break;

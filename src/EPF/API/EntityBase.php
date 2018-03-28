@@ -169,10 +169,16 @@ abstract class EntityBase
 		switch($type)
 		{
 			case "object":
+				$type = get_class($value);
 				if(is_a($value, self::class))
 				{
 					$valid = true;
 					$type = "entity";
+				}
+				elseif(is_a($value, Resource::class))
+				{
+					$valid = true;
+					$type = "resource";
 				}
 				break;
 			case "double":
