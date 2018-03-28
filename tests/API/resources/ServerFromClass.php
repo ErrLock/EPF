@@ -49,7 +49,7 @@ class FriendsList extends Entity
 			&& in_array($name, $this->all_children[$this->player])
 		)
 		{
-			$target = $this->getIndex()->getEntity("/players/". $name);
+			$target = $this->getIndex()->GET("/players/". $name);
 			$this->setProperty($name, new EntityRef($target));
 		}
 	}
@@ -129,9 +129,9 @@ class EntityPlayerList extends Entity
 
 class ServerFromClass extends Server
 {
-	public function __construct()
+	public function __construct(string $uri)
 	{
-		parent::__construct();
+		parent::__construct($uri);
 		
 		$this->setProperty("players", new EntityPlayerList());
 	}

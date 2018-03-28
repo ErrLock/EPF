@@ -47,7 +47,7 @@ class Entity extends Document
 	 */
 	public function __construct()
 	{
-		parent::__construct();
+		parent::__construct("application/vnd.errlock.api+entity+xml");
 		$this->loadXML(
 '<?xml version="1.0" encoding="utf-8"?>'.
 '<entity '.

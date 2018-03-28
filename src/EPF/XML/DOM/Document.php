@@ -33,6 +33,8 @@ namespace EPF\XML\DOM;
  */
 class Document extends \DOMDocument
 {
+	private $media_type = 'application/xml';
+	
 	/**
 	 * @brief 
 	 * 
@@ -42,11 +44,17 @@ class Document extends \DOMDocument
 	 * 
 	 * @retval type Desc
 	 */
-	public function __construct()
+	public function __construct(string $media_type = null)
 	{
-		parent::__construct();
+		parent::__construct('1.0', 'utf-8');
+		
 		$this->formatOutput = true;
 		$this->registerNodeClass('DOMElement', Element::class);
+		
+		if(isset($media_type))
+		{
+			$this->setMediaType($media_type);
+		}
 	}
 	
 	/**
@@ -138,6 +146,48 @@ class Document extends \DOMDocument
 		}
 		
 		return null;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getMediaType()
+	{
+		return $this->media_type;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	protected function setMediaType(string $type)
+	{
+		$this->media_type = $type;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function __toString()
+	{
+		return $this->saveXML();
 	}
 }
 ?>

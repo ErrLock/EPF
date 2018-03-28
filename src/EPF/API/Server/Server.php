@@ -44,9 +44,62 @@ class Server extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function __construct()
+	public function __construct(string $uri)
 	{
+		$this->setURI($uri);
+		
 		parent::__construct("index");
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function setURI(string $uri)
+	{
+		$p_uri = parse_url($uri);
+		if(
+			$p_uri == false
+			|| !isset($p_uri['scheme'])
+			|| !isset($p_uri['host'])
+			|| ($p_uri['scheme'] != "http" && $p_uri['scheme'] != "https")
+		)
+		{
+			throw new \Error("Malformed URI");
+		}
+		if($p_uri['scheme'] == "https" && !isset($_SERVER['HTTPS']))
+		{
+			throw new \Error("API should be accessed using https");
+		}
+		
+		$path = '/';
+		if(!isset($p_uri['path']))
+		{
+			$uri .= '/';
+		}
+		else
+		{
+			$path = $p_uri['path'];
+		}
+		
+		if(
+			$p_uri['host'] != $_SERVER['SERVER_NAME']
+			|| (
+				isset($p_uri['port'])
+				&& $p_uri['port'] != $_SERVER['SERVER_PORT']
+			)
+			|| dirname($_SERVER['SCRIPT_NAME']) != $path
+		)
+		{
+			throw new \Error("API URI mismatch");
+		}
+		
+		$this->uri = $uri;
 	}
 	
 	/**
@@ -130,11 +183,15 @@ class Server extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function getEntity(string $path = '/')
+	public function GET(string $path = '/')
 	{
 		if(strpos($path, '/') !== 0)
 		{
 			throw new Error("Path must be absolute");
+		}
+		if(substr($path , -1) == '/')
+		{
+			$path = substr($path, 0, -1);
 		}
 		
 		$path = substr($path, 1);
@@ -164,13 +221,107 @@ class Server extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function GET(
-		string $path = '/',
-		string $media = 'application/xml'
+	public function send(Entity $data, string $media = null)
+	{
+		if(is_null($media))
+		{
+			$media = 'application/xml';
+		}
+		
+		$dom = $this->transform($data, $media);
+		
+		header(
+			'Content-Type: '. $media .
+			'; charset='. $dom->encoding
+		);
+		echo $dom;
+		exit;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function get_request_path()
+	{
+		$path = $_SERVER['REQUEST_URI'];
+		if(isset($_SERVER['QUERY_STRING']))
+		{
+			$len = strlen($_SERVER['QUERY_STRING']) + 1;
+			$path = substr($path, 0, -$len);
+		}
+		
+		$pos = strpos($path, $_SERVER['SCRIPT_NAME']);
+		if($pos !== false)
+		{
+			$len = strlen($_SERVER['SCRIPT_NAME']);
+			$path = substr($path, $len);
+		}
+		
+		if(empty($path))
+		{
+			$path = '/';
+		}
+		
+		return $path;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function run(
+		string $method = null,
+		string $path = null,
+		string $media = null
 	)
 	{
+		if(is_null($method))
+		{
+			$method = $_SERVER['REQUEST_METHOD'];
+		}
+		if(is_null($path))
+		{
+			$path = $this->get_request_path();
+		}
+		
+		$result = null;
+		switch($method)
+		{
+			case 'GET':
+				$result = $this->GET($path);
+				break;
+			default:
+				throw new \Error("Invalid method: ". $method);
+				break;
+		}
+		
+		$this->send($result, $media);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function transform(Entity $data, string $media)
+	{
+		$dom = $data->getDom();
 		$xsl = $this->get_xsl($media);
-		$dom = $this->getEntity($path)->getDOM();
 		
 		return $dom;
 	}

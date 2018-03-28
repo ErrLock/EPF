@@ -24,7 +24,7 @@
 	</simpleType>
 	
 	<complexType name="entity">
-		<choice maxOccurs="unbounded">
+		<choice minOccurs="0" maxOccurs="unbounded">
 			<element name="string" type="tns:string" />
 			<element name="resource" type="tns:resource" />
 			<element name="entity" type="tns:entity_link" />
