@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <schema xmlns="http://www.w3.org/2001/XMLSchema"
-	xmlns:data="https://schemas.errlock.org/api/xml/data"
-	targetNamespace="https://schemas.errlock.org/api/xml/data"
+	xmlns:entity="https://schemas.errlock.org/api/xml/entity"
+	targetNamespace="https://schemas.errlock.org/api/xml/entity"
 	elementFormDefault="qualified"
 	attributeFormDefault="unqualified">
 	
@@ -11,10 +11,10 @@
 		</documentation>
 	</annotation>
 	
-	<element name="data" type="data:data" />
+	<element name="entity" type="entity:entity" />
 	
-	<attributeGroup name="mandatory">
-		<attribute name="id" type="ID" use="required" />
+	<attributeGroup name="property">
+		<attribute name="name" type="ID" use="required" />
 	</attributeGroup>
 	
 	<simpleType name="media-type">
@@ -23,29 +23,29 @@
 		</restriction>
 	</simpleType>
 	
-	<complexType name="data">
+	<complexType name="entity">
 		<choice maxOccurs="unbounded">
-			<element name="string" type="data:string" />
-			<element name="resource" type="data:resource" />
-			<element name="entity" type="data:entity" />
+			<element name="string" type="entity:string" />
+			<element name="resource" type="entity:resource" />
+			<element name="entity" type="entity:entity_link" />
 		</choice>
 	</complexType>
 	
 	<complexType name="string">
 		<simpleContent>
 			<extension base="string">
-				<attributeGroup ref="data:mandatory" />
+				<attributeGroup ref="entity:property" />
 			</extension>
 		</simpleContent>
 	</complexType>
 	
 	<complexType name="basic">
-		<attributeGroup ref="data:mandatory" />
+		<attributeGroup ref="entity:property" />
 	</complexType>
 	
-	<complexType name="entity">
+	<complexType name="entity_link">
 		<complexContent>
-			<extension base="data:basic">
+			<extension base="entity:basic">
 				<attribute name="href" type="anyURI" use="required" />
 			</extension>
 		</complexContent>
@@ -53,8 +53,8 @@
 	
 	<complexType name="resource">
 		<complexContent>
-			<extension base="data:entity">
-				<attribute name="type" type="data:media-type" use="required" />
+			<extension base="entity:entity_link">
+				<attribute name="type" type="entity:media-type" use="required" />
 			</extension>
 		</complexContent>
 	</complexType>
