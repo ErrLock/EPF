@@ -60,17 +60,20 @@ class EntityPlayer extends Entity
 	{
 		parent::__construct($name);
 		
+		$a_url = $this->getURI() ."/avatar.png";
 		switch($this->getName())
 		{
 			case "player1":
 				$this->setProperty("firstName", "Kevin");
 				$this->setProperty("lastName", "Sookocheff");
 				$this->setProperty("pseudonym", "soofaloofa");
+				$this->setProperty("avatar", new Entity($a_url));
 				break;
 			case "player2":
 				$this->setProperty("firstName", "Albert");
 				$this->setProperty("lastName", "Hofmann");
 				$this->setProperty("pseudonym", "bicycleman");
+				$this->setProperty("avatar", new Entity($a_url));
 				break;
 		}
 		$this->setProperty("friends", new FriendsList($name));

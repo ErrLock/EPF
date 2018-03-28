@@ -179,15 +179,15 @@ class Entity extends EntityBase
 		// Clone it, only us should modify it
 		$dom = clone $this->dom;
 		
-		$dom->setProperty("@self", $this);
-		$dom->setProperty("@index", $this->getIndex());
+		//~ $dom->setProperty("@self", $this);
+		//~ $dom->setProperty("@index", $this->getIndex());
 		
-		$col = $this->getCollection();
-		if(isset($col))
-		{
-			$dom->setProperty("@collection", $col);
-			$dom->setProperty("@up", $col);
-		}
+		//~ $col = $this->getCollection();
+		//~ if(isset($col))
+		//~ {
+			//~ $dom->setProperty("@collection", $col);
+			//~ $dom->setProperty("@up", $col);
+		//~ }
 		
 		return  $dom;
 	}

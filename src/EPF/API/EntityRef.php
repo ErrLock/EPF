@@ -76,7 +76,7 @@ class EntityRef extends EntityBase
 	public function getDOM()
 	{
 		$result = $this->target->getDOM();
-		$result->setProperty("@up", parent::getCollection());
+		//~ $result->setProperty("@up", parent::getCollection());
 		return $result;
 	}
 	
