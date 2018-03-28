@@ -7,12 +7,15 @@ use EPF\API\Server;
 
 class FriendsList extends Entity
 {
+	private $player = null;
 	private $all_children = array(
-		"player2"
+		"player1" => array( "player2" ),
+		"player2" => array()
 	);
 	
-	public function __construct(string $name = "friends")
+	public function __construct(string $player, string $name = "friends")
 	{
+		$this->player = $player;
 		parent::__construct($name);
 	}
 	
@@ -32,7 +35,7 @@ class FriendsList extends Entity
 		 * We fully populate the dom only if asked for it
 		 */
 		parent::populate();
-		foreach($this->all_children as $name)
+		foreach($this->all_children[$this->player] as $name)
 		{
 			$this->check_player($name);
 		}
@@ -42,11 +45,11 @@ class FriendsList extends Entity
 	{
 		if(
 			!$this->hasProperty($name)
-			&& in_array($name, $this->all_children)
+			&& in_array($name, $this->all_children[$this->player])
 		)
 		{
-			$player = $this->getIndex()->GET("/players/". $name);
-			$this->setProperty($name, new EntityRef($player));
+			$target = $this->getIndex()->GET("/players/". $name);
+			$this->setProperty($name, new EntityRef($target));
 		}
 	}
 }
@@ -57,18 +60,23 @@ class EntityPlayer extends Entity
 	{
 		parent::__construct($name);
 		
-		$displayName = null;
+		$a_url = $this->getURI() ."/avatar.png";
 		switch($this->getName())
 		{
 			case "player1":
-				$displayName = "Player 1";
+				$this->setProperty("firstName", "Kevin");
+				$this->setProperty("lastName", "Sookocheff");
+				$this->setProperty("pseudonym", "soofaloofa");
+				$this->setProperty("avatar", new Entity($a_url));
 				break;
 			case "player2":
-				$displayName = "Player 2";
+				$this->setProperty("firstName", "Albert");
+				$this->setProperty("lastName", "Hofmann");
+				$this->setProperty("pseudonym", "bicycleman");
+				$this->setProperty("avatar", new Entity($a_url));
 				break;
 		}
-		$this->setProperty("displayName", $displayName);
-		$this->setProperty("friends", new FriendsList());
+		$this->setProperty("friends", new FriendsList($name));
 	}
 }
 

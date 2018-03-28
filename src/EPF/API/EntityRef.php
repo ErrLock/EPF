@@ -27,18 +27,13 @@
 
 namespace EPF\API;
 
-use EPF\StdClass\Friend;
-
 /**
  * @brief 
  * @details 
  */
 class EntityRef extends EntityBase
 {
-	use Friend;
-	
 	private $target = null;
-	private $up = null;
 	
 	/**
 	 * @brief 
@@ -51,7 +46,6 @@ class EntityRef extends EntityBase
 	 */
 	public function __construct(EntityBase $target)
 	{
-		self::_friend_init();
 		$this->target = $target;
 		parent::__construct($target->getName());
 	}
@@ -65,9 +59,9 @@ class EntityRef extends EntityBase
 	 * 
 	 * @retval type Desc
 	 */
-	private static function _friend_config()
+	public function getCollection()
 	{
-		self::_friend(Entity::class);
+		return $this->target->getCollection();
 	}
 	
 	/**
@@ -82,7 +76,7 @@ class EntityRef extends EntityBase
 	public function getDOM()
 	{
 		$result = $this->target->getDOM();
-		$result->setProperty("@up", $this->getProperty("@up"));
+		//~ $result->setProperty("@up", parent::getCollection());
 		return $result;
 	}
 	
@@ -97,9 +91,7 @@ class EntityRef extends EntityBase
 	 */
 	public function getProperties()
 	{
-		$result = $this->target->getProperties();
-		$result["@up"] = $this->up;
-		return $result;
+		return $this->target->getProperties();
 	}
 	
 	/**
@@ -113,11 +105,6 @@ class EntityRef extends EntityBase
 	 */
 	public function getProperty(string $name)
 	{
-		if($name == "@up")
-		{
-			return $this->up;
-		}
-		
 		return $this->target->getProperty($name);
 	}
 	
@@ -132,11 +119,6 @@ class EntityRef extends EntityBase
 	 */
 	public function hasProperty(string $name)
 	{
-		if($name == "@up" && isset($this->up))
-		{
-			return $this->up;
-		}
-		
 		return $this->target->hasProperty($name);
 	}
 	
@@ -151,38 +133,7 @@ class EntityRef extends EntityBase
 	 */
 	protected function setProperty(string $name, $value)
 	{
-		throw new \Error("Entity references doesn't have properties");
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	final protected function set_property(string $name, $value)
-	{
-		if($name != "@collection")
-		{
-			throw new \error("Trying to set ". $name ." on ". get_class($this));
-		}
-		if(isset($this->up))
-		{
-			throw new \Error("@up already set");
-		}
-		if(!is_a($value, parent::class))
-		{
-			throw new \Error("Invalid type");
-		}
-		if($value->getIndex() !== $this->target->getIndex())
-		{
-			throw new \Error("Different API");
-		}
-		
-		$this->up = $value;
+		throw new \Error("Entity references don't have properties");
 	}
 }
 ?>

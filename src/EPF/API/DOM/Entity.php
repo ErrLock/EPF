@@ -35,8 +35,6 @@ use EPF\API;
  */
 class Entity extends \DOMDocument
 {
-	private $api_entity = null;
-	
 	/**
 	 * @brief 
 	 * 
@@ -46,12 +44,11 @@ class Entity extends \DOMDocument
 	 * 
 	 * @retval type Desc
 	 */
-	public function __construct(API\Entity $api_entity)
+	public function __construct()
 	{
 		parent::__construct();
 		$this->formatOutput = true;
 		$this->loadXML('<?xml version="1.0" encoding="utf-8"?><entity />');
-		$this->api_entity = $api_entity;
 	}
 	
 	/**
@@ -83,26 +80,9 @@ class Entity extends \DOMDocument
 	 * 
 	 * @retval type Desc
 	 */
-	private function update()
-	{
-		foreach($this->api_entity->getProperties() as $name => $value)
-		{
-			$this->setProperty($name, $value);
-		}
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
 	public function setProperty(string $name, $value)
 	{
-		$type = API\Entity::getPropertyType($value);
+		$type = API\EntityBase::getPropertyType($value);
 		$node = $this->getElementById($name);
 		
 		if(is_null($node))
@@ -114,24 +94,10 @@ class Entity extends \DOMDocument
 			throw new \Error("Type mismatch: ". $type ." != ". $node->tagName);
 		}
 		
-		$this->update_property($node, $value);
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
-	private function update_property(\DOMElement $node, $value)
-	{
-		switch($node->tagName)
+		switch($type)
 		{
 			case "link":
-				$this->update_link($node, $value->getURI());
+				$node->setAttribute("href", $value->getURI());
 				break;
 			default:
 				$node->nodeValue = $value;
@@ -148,58 +114,12 @@ class Entity extends \DOMDocument
 	 * 
 	 * @retval type Desc
 	 */
-	private function update_link(\DOMElement $node, string $uri)
-	{
-		if($node->getAttribute("href") != $uri)
-		{
-			$node->setAttribute("href", $uri);
-			switch($node->getAttribute("name"))
-			{
-				case '@collection':
-					/*
-					 * Call update if we've been changed
-					 * This also avoid going into a loop when update calls
-					 * setProperty:
-					 * We've already been changed, so we won't call update again
-					 */
-					$this->update();
-					break;
-			}
-		}
-	}
-	
-	/**
-	 * @brief 
-	 * 
-	 * @param[in] type name Desc
-	 * 
-	 * @exception type Desc
-	 * 
-	 * @retval type Desc
-	 */
 	private function create_property(string $type, string $name)
 	{
-		$node = null;
-		switch($type)
-		{
-			case "link":
-				$node = $this->createElement("link");
-				$rel = "item";
-				if($name[0] === "@")
-				{
-					$rel = substr($name, 1);
-				}
-				$node->setAttribute("rel", $rel);
-				break;
-			default:
-				$node = $this->createElement($type, "");
-				break;
-		}
-		
+		$node = $this->createElement($type);
+		$this->documentElement->appendChild($node);
 		$node->setAttribute("name", $name);
 		$node->setIdAttribute("name", true);
-		
-		$this->documentElement->appendChild($node);
 		
 		return $node;
 	}
