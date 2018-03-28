@@ -48,7 +48,14 @@ class Entity extends \DOMDocument
 	{
 		parent::__construct();
 		$this->formatOutput = true;
-		$this->loadXML('<?xml version="1.0" encoding="utf-8"?><entity />');
+		$this->loadXML(
+'<?xml version="1.0" encoding="utf-8"?>'.
+'<entity xmlns="https://schemas.errlock.org/api/xml/entity" '.
+'xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" '.
+'xsi:schemaLocation="https://schemas.errlock.org/api/xml/entity '.
+'https://schemas.errlock.org/api/xml/entity.xsd"'.
+'/>'
+		);
 	}
 	
 	/**
@@ -96,7 +103,7 @@ class Entity extends \DOMDocument
 		
 		switch($type)
 		{
-			case "link":
+			case "entity":
 				$node->setAttribute("href", $value->getURI());
 				break;
 			default:

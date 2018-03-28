@@ -172,7 +172,7 @@ abstract class EntityBase
 				if(is_a($value, self::class))
 				{
 					$valid = true;
-					$type = "link";
+					$type = "entity";
 				}
 				break;
 			case "double":

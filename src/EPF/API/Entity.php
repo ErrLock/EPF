@@ -119,7 +119,7 @@ class Entity extends EntityBase
 		
 		$this->properties[$name] = $value;
 		
-		if($type == 'link')
+		if($type == 'entity')
 		{
 			$value->setCollection($this);
 		}
