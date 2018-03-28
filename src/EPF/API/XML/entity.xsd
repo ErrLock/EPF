@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<schema xmlns="http://www.w3.org/2001/XMLSchema"
+	xmlns:tns="https://schemas.errlock.org/api/xml/entity"
+	targetNamespace="https://schemas.errlock.org/api/xml/entity"
+	elementFormDefault="qualified"
+	attributeFormDefault="unqualified">
+	
+	<annotation>
+		<documentation xml:lang="en">
+			Data schema for EPF API data.
+		</documentation>
+	</annotation>
+	
+	<element name="entity" type="tns:entity" />
+	
+	<attributeGroup name="property">
+		<attribute name="name" type="ID" use="required" />
+	</attributeGroup>
+	
+	<simpleType name="media-type">
+		<restriction base="string">
+			<pattern value="[\p{L}\p{N}][\p{L}\p{N}!#$&amp;\-\^_\.\+]{0,126}/[\p{L}\p{N}][\p{L}\p{N}!#$&amp;\-\^_\.\+]{0,126}" />
+		</restriction>
+	</simpleType>
+	
+	<complexType name="entity">
+		<choice maxOccurs="unbounded">
+			<element name="string" type="tns:string" />
+			<element name="resource" type="tns:resource" />
+			<element name="entity" type="tns:entity_link" />
+		</choice>
+	</complexType>
+	
+	<complexType name="string">
+		<simpleContent>
+			<extension base="string">
+				<attributeGroup ref="tns:property" />
+			</extension>
+		</simpleContent>
+	</complexType>
+	
+	<complexType name="basic">
+		<attributeGroup ref="tns:property" />
+	</complexType>
+	
+	<complexType name="entity_link">
+		<complexContent>
+			<extension base="tns:basic">
+				<attribute name="href" type="anyURI" use="required" />
+			</extension>
+		</complexContent>
+	</complexType>
+	
+	<complexType name="resource">
+		<complexContent>
+			<extension base="tns:entity_link">
+				<attribute name="type" type="tns:media-type" use="required" />
+			</extension>
+		</complexContent>
+	</complexType>
+</schema>

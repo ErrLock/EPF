@@ -48,7 +48,7 @@ class FriendsList extends Entity
 			&& in_array($name, $this->all_children[$this->player])
 		)
 		{
-			$target = $this->getIndex()->GET("/players/". $name);
+			$target = $this->getIndex()->getEntity("/players/". $name);
 			$this->setProperty($name, new EntityRef($target));
 		}
 	}

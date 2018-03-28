@@ -1,0 +1,7 @@
+<?xml version="1.0"?>
+<data xmlns="https://schemas.errlock.org/api/xml/data"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="https://schemas.errlock.org/api/xml/data https://schemas.errlock.org/api/xml/data.xsd">
+	<entity id="P-1234567890" href="P-1234567890" />
+	<entity id="P-0987654321" href="P-0987654321" />
+</data>
