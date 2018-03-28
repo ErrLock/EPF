@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <schema xmlns="http://www.w3.org/2001/XMLSchema"
-	xmlns:entity="https://schemas.errlock.org/api/xml/entity"
+	xmlns:tns="https://schemas.errlock.org/api/xml/entity"
 	targetNamespace="https://schemas.errlock.org/api/xml/entity"
 	elementFormDefault="qualified"
 	attributeFormDefault="unqualified">
@@ -11,7 +11,7 @@
 		</documentation>
 	</annotation>
 	
-	<element name="entity" type="entity:entity" />
+	<element name="entity" type="tns:entity" />
 	
 	<attributeGroup name="property">
 		<attribute name="name" type="ID" use="required" />
@@ -25,27 +25,27 @@
 	
 	<complexType name="entity">
 		<choice maxOccurs="unbounded">
-			<element name="string" type="entity:string" />
-			<element name="resource" type="entity:resource" />
-			<element name="entity" type="entity:entity_link" />
+			<element name="string" type="tns:string" />
+			<element name="resource" type="tns:resource" />
+			<element name="entity" type="tns:entity_link" />
 		</choice>
 	</complexType>
 	
 	<complexType name="string">
 		<simpleContent>
 			<extension base="string">
-				<attributeGroup ref="entity:property" />
+				<attributeGroup ref="tns:property" />
 			</extension>
 		</simpleContent>
 	</complexType>
 	
 	<complexType name="basic">
-		<attributeGroup ref="entity:property" />
+		<attributeGroup ref="tns:property" />
 	</complexType>
 	
 	<complexType name="entity_link">
 		<complexContent>
-			<extension base="entity:basic">
+			<extension base="tns:basic">
 				<attribute name="href" type="anyURI" use="required" />
 			</extension>
 		</complexContent>
@@ -53,8 +53,8 @@
 	
 	<complexType name="resource">
 		<complexContent>
-			<extension base="entity:entity_link">
-				<attribute name="type" type="entity:media-type" use="required" />
+			<extension base="tns:entity_link">
+				<attribute name="type" type="tns:media-type" use="required" />
 			</extension>
 		</complexContent>
 	</complexType>
