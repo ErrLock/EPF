@@ -58,13 +58,80 @@ class Server extends Entity
 	 * 
 	 * @retval type Desc
 	 */
-	public function GET(string $path = '/', string $media = 'application/xml')
+	private function parse_media_type(string $media)
 	{
-		if($media != 'application/xml')
+		$result = array(
+			'type' => 'application',
+			'subtype' => array(
+				'tree' => 'standard',
+				'name' => 'xml',
+				'syntax' => 'xml'
+			)
+		);
+		
+		$media = explode('/', $media);
+		$result['type'] = $media[0];
+		
+		$subtype = explode('+', $media[1], 2);
+		if(count($subtype) == 1)
 		{
-			throw new \Error("Unknow media type: ". $media);
+			$result['subtype']['name'] = $result['subtype']['syntax']
+				= $subtype[0];
+			return $result;
 		}
+		$result['subtype']['syntax'] = $subtype[1];
+		
+		$tree = explode('.', $subtype[0], 2);
+		if(count($tree) == 1)
+		{
+			$result['subtype']['name'] = $tree[0];
+			return $result;
+		}
+		$result['subtype']['tree'] = $tree[0];
+		$result['subtype']['name'] = $tree[1];
+		
+		return $result;
+	}
 	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	private function get_xsl(string $media)
+	{
+		switch($media)
+		{
+			case 'application/xml':
+				$media = 'application/vnd.errlock.api+entity+xml';
+				break;
+		}
+		
+		if($media == 'application/vnd.errlock.api+entity+xml')
+		{
+			return null;
+		}
+		
+		$p_media = $this->parse_media_type($media);
+		var_dump($p_media);
+		throw new \Error("Unknow media type: ". $media);
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function getEntity(string $path = '/')
+	{
 		if(strpos($path, '/') !== 0)
 		{
 			throw new Error("Path must be absolute");
@@ -86,6 +153,26 @@ class Server extends Entity
 		}
 		
 		return $result;
+	}
+	
+	/**
+	 * @brief 
+	 * 
+	 * @param[in] type name Desc
+	 * 
+	 * @exception type Desc
+	 * 
+	 * @retval type Desc
+	 */
+	public function GET(
+		string $path = '/',
+		string $media = 'application/xml'
+	)
+	{
+		$xsl = $this->get_xsl($media);
+		$dom = $this->getEntity($path)->getDOM();
+		
+		return $dom;
 	}
 	
 	/**
