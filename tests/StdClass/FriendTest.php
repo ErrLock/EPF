@@ -104,12 +104,14 @@ class Inherited extends A
 }
 
 /**
- * @brief Autoload test
+ * @brief Friendship tests
+ * @see
+ * <a href="https://wiki.php.net/rfc/friend-classes">PHP RFC: Class Friendship</a>
  */
 final class FriendTest extends TestCase
 {
 	/**
-	 * @brief Test class generated api
+	 * @brief Test if friendship works
 	 */
 	public function testCanBeFriend()
 	{
@@ -121,6 +123,9 @@ final class FriendTest extends TestCase
 		$this->assertEquals($b->call_method($a), 'A: method');
 	}
 	
+	/**
+	 * @brief Test if friendship is not symmetric
+	 */
 	public function testFriendshipIsNotSymmetric()
 	{
 		$a = new A();
@@ -131,6 +136,9 @@ final class FriendTest extends TestCase
 		$a->get_property($b);
 	}
 	
+	/**
+	 * @brief Test if friendship is not transitive
+	 */
 	public function testFriendshipIsNotTransitive()
 	{
 		$a = new Friend();
@@ -141,6 +149,9 @@ final class FriendTest extends TestCase
 		$a->get_property($b);
 	}
 	
+	/**
+	 * @brief Test if friendship is not inherited
+	 */
 	public function testFriendshipIsNotInherited()
 	{
 		$a = new Inherited();
@@ -151,6 +162,9 @@ final class FriendTest extends TestCase
 		$b->get_property($a);
 	}
 	
+	/**
+	 * @brief Test if friendship allow access to inherited members
+	 */
 	public function testAccessIsInherited()
 	{
 		$a = new A();

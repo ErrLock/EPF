@@ -19,8 +19,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * @endparblock
  * 
- * @brief Short file description.
- * @details A detailed description.
+ * @brief Base class definition.
+ * @details
+ * This class should be inherited by all our classes.
+ * It allows friendship.
  * @author Garinot Pierre <garinot.pierre@errlock.org>
  * @version 0.1
  */
@@ -28,13 +30,26 @@
 namespace EPF;
 
 /**
- * @brief 
- * @details 
+ * @brief Base class for all our classes.
+ * @details
+ * This class should be inherited by all our classes.
+ * @par Using friendship:
+ * @include friendship.php
  */
 abstract class StdClass
 {
+	/**
+	 * @brief Friendship cache
+	 * @details
+	 * Avoids repetitive use of \ReflectionClass
+	 */
 	private static $_friend_cache = array();
 	
+	/**
+	 * @brief Call to inaccessible method
+	 * @details
+	 * Allows calling protected methods by friends
+	 */
 	public function __call(string $name, array $args)
 	{
 		$this->_friend_check('method', $name);
@@ -42,6 +57,11 @@ abstract class StdClass
 		return call_user_func_array(array($this, $name), $args);
 	}
 	
+	/**
+	 * @brief Getter for inaccessible properties
+	 * @details
+	 * Allows getting protected properties by friends
+	 */
 	public function __get(string $name)
 	{
 		$this->_friend_check('property', $name);
@@ -49,6 +69,11 @@ abstract class StdClass
 		return $this->$name;
 	}
 	
+	/**
+	 * @brief Setter for inaccessible properties
+	 * @details
+	 * Allows setting protected properties by friends
+	 */
 	public function __set(string $name, $value)
 	{
 		$this->_friend_check('property', $name);
@@ -56,6 +81,9 @@ abstract class StdClass
 		$this->$name = $value;
 	}
 	
+	/**
+	 * @brief Builds friendship cache
+	 */
 	private function _friend_build_cache(string $class)
 	{
 		self::$_friend_cache[$class] = array(
@@ -68,6 +96,9 @@ abstract class StdClass
 		$this->_friend_cache_friends($ref);
 	}
 	
+	/**
+	 * @brief Cache protected members
+	 */
 	private function _friend_cache_members(\ReflectionClass $ref)
 	{
 		$protected = array_merge(
@@ -82,6 +113,9 @@ abstract class StdClass
 		}
 	}
 	
+	/**
+	 * @brief Cache friend classes
+	 */
 	private function _friend_cache_friends(\ReflectionClass $ref)
 	{	
 		/*
@@ -123,6 +157,9 @@ abstract class StdClass
 		}
 	}
 	
+	/**
+	 * @brief Check for friendship access
+	 */
 	private function _friend_check(string $type, string $name)
 	{
 		$class = get_class($this);

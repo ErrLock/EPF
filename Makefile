@@ -1,6 +1,6 @@
-SRCS = $(shell find src -type f)
+SRCS = $(shell find src docs/examples -type f)
 
-.PHONY: all clean maint-clean doc gh-pages tests
+.PHONY: all clean force maint-clean doc gh-pages tests
 
 all:
 

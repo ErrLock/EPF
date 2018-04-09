@@ -8,7 +8,7 @@ composer.phar
 *.geany
 
 # doxygen output
-docs/*/
+docs/html/
 
 # build files
 *.time
