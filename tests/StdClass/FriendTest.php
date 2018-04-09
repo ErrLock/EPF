@@ -26,166 +26,81 @@
 
 declare(strict_types=1);
 
-namespace EPF\StdClass;
+namespace EPF;
 
 require_once("EPF/Autoload.php");
 
 use PHPUnit\Framework\TestCase;
 
-class A
+class Base extends StdClass
 {
-	use Friend;
-	
-	protected $property = true;
-	
-	private static function _friend_config()
-	{
-		self::_friend(FriendOfA::class);
-	}
-	
-	protected function touch()
-	{
-		return true;
-	}
-}
-
-class FriendOfA
-{
-	public function touch_property(A $instance)
-	{
-		return $instance->property;
-	}
-	
-	public function touch_method(A $instance)
-	{
-		return $instance->touch();
-	}
-}
-
-class SymmetricA
-{
-	protected $property = true;
+    private $secret = 'Base: private';
+    protected $accessible = 'Base: protected';
  
-    public function touch(SymmetricB $instance)
-    {
-        return $instance->property;
-    }
-}
-
-class SymmetricB
-{
-	use Friend;
-	
-	protected $property = true;
-	
-	private static function _friend_config()
-	{
-		self::_friend(SymmetricA::class);
-	}
-	
-	public function touch(SymmetricA $instance)
-    {
-        echo $instance->property;
-    }
-}
-
-class TransitiveA
-{       
-    public function touch(TransitiveC $instance)
-    {
-        echo $instance->property;
-    }
-}
- 
-class TransitiveB
-{   
-	use Friend;
-	
-	private static function _friend_config()
-	{
-		self::_friend(TransitiveA::class);
-	}
-}
- 
-class TransitiveC
-{
-	use Friend;
-	
-	private static function _friend_config()
-	{
-		self::_friend(TransitiveB::class);
-	}
- 
-    protected $property = 'foo';
-}
-
-class InheritedBase
-{
-	use Friend;
-	
-	private static function _friend_config()
-	{
-		self::_friend(InheritedFriendly::class);
-	}
-}
-
-class InheritedDerived extends InheritedBase
-{
-    protected $property = 'foo';
-}
-
-class InheritedFriendly
-{
-    public function touch(InheritedDerived $instance)
-    {
-        echo $instance->property;
-    }
-}
-
-class AccessBase
-{
-    private $secret = true;
-    protected $accessible = true;
- 
-    protected function touch()
+    protected function get_secret()
     {
         return $this->secret;
     }
 }
 
-class AccessDerived extends AccessBase
+class A extends Base
 {
-	use Friend;
+	private static $_FRIENDS = array(
+		Friend::class
+	);
 	
-	private static function _friend_config()
+	protected $property = 'A: initial';
+	
+	public function get_property($instance = null)
 	{
-		self::_friend(AccessFriendly::class);
+		if(isset($instance))
+		{
+			return $instance->property;
+		}
+		
+		return $this->property;
 	}
- 
-    protected $someProperty = true;
+	
+	protected function call_method()
+	{
+		return 'A: method';
+	}
 }
 
-class AccessFriendly
+class Friend extends StdClass
 {
-    public function touch_property(AccessDerived $instance)
-    {
-        return $instance->someProperty;
+	protected $property = 'Friend: initial';
+	
+	public function get_property($instance, string $name = 'property')
+	{
+		return $instance->$name;
 	}
 	
-    public function touch_accessible(AccessDerived $instance)
-    {
-        return $instance->accessible;
-    }
-    
-    public function touch_secret(AccessDerived $instance)
-    {
-        return $instance->secret;
-    }
-    
-    public function touch_secret_method(AccessDerived $instance)
-    {
-        return $instance->touch();
-    }
+	public function set_property(
+		$instance, string $value, string $name = 'property'
+	)
+	{
+		$instance->$name = $value;
+	}
+	
+	public function call_method($instance, string $name = 'call_method')
+	{
+		return $instance->$name();
+	}
+}
+ 
+class Transitive extends StdClass
+{
+	private static $_FRIENDS = array(
+		A::class
+	);
+ 
+    protected $property = 'Transitive: initial';
+}
+
+class Inherited extends A
+{
+    protected $property = 'foo';
 }
 
 /**
@@ -199,53 +114,57 @@ final class FriendTest extends TestCase
 	public function testCanBeFriend()
 	{
 		$a = new A();
-		$b = new FriendOfA();
-		$this->assertTrue($b->touch_property($a));
-		$this->assertTrue($b->touch_method($a));
+		$b = new Friend();
+		$this->assertEquals($b->get_property($a), 'A: initial');
+		$b->set_property($a, 'A: changed');
+		$this->assertEquals($a->get_property(), 'A: changed');
+		$this->assertEquals($b->call_method($a), 'A: method');
 	}
 	
 	public function testFriendshipIsNotSymmetric()
 	{
-		$a = new SymmetricA();
-		$b = new SymmetricB();
+		$a = new A();
+		$b = new Friend();
 		
-		$this->assertTrue($a->touch($b));
 		$this->expectException('Error');
 		$this->expectExceptionMessage("Cannot access protected property");
-		$b->touch($a);
+		$a->get_property($b);
 	}
 	
 	public function testFriendshipIsNotTransitive()
 	{
-		$a = new TransitiveA();
-		$c = new TransitiveC();
+		$a = new Friend();
+		$b = new Transitive();
  
 		$this->expectException('Error');
 		$this->expectExceptionMessage("Cannot access protected property");
-		$a->touch($c);
+		$a->get_property($b);
 	}
 	
 	public function testFriendshipIsNotInherited()
 	{
-		$derived = new InheritedDerived();
-		$friendly = new InheritedFriendly();
+		$a = new Inherited();
+		$b = new Friend();
 		
 		$this->expectException('Error');
 		$this->expectExceptionMessage("Cannot access protected property");
-		$friendly->touch($derived);
+		$b->get_property($a);
 	}
 	
 	public function testAccessIsInherited()
 	{
-		$derived = new AccessDerived();
-		$friendly = new AccessFriendly();
+		$a = new A();
+		$b = new Friend();
  
-		$friendly->touch_property($derived);
-		$friendly->touch_accessible($derived);
-		$friendly->touch_secret_method($derived);
-		$this->expectException('Error');
-		$this->expectExceptionMessage("Undefined property");
-		$friendly->touch_secret($derived);
+		$this->assertEquals(
+			$b->get_property($a), 'A: initial'
+		);
+		$this->assertEquals(
+			$b->get_property($a, 'accessible'), 'Base: protected'
+		);
+		$this->assertEquals(
+			$b->call_method($a, 'get_secret'), 'Base: private'
+		);
 	}
 }
 ?>
