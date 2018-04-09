@@ -19,8 +19,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  * @endparblock
  * 
- * @brief Short file description.
- * @details A detailed description.
+ * @brief Autoloader.
+ * @details Allows registering an autoload for a namespace.
  * @author Garinot Pierre <garinot.pierre@errlock.org>
  * @version 0.1
  */
