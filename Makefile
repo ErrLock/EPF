@@ -1,4 +1,4 @@
-SRCS = $(shell find src docs/examples -type f)
+SRCS = $(shell find src docs/examples conf/doxygen -type f)
 
 .PHONY: all clean force maint-clean doc gh-pages tests
 
