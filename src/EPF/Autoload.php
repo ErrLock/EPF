@@ -27,6 +27,8 @@
 
 namespace EPF;
 
+require_once(__DIR__ .'/StdClass/StdClass.php');
+
 /**
  * @brief The Autoload class
  * @details Used to autoload classes
@@ -35,7 +37,7 @@ namespace EPF;
  * - namespace: ErrLock
  * - path: The directory where this file resides
  */
-class Autoload
+class Autoload extends StdClass
 {
 	/**
 	 * Default suffixes for file lookups
