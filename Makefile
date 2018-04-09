@@ -19,7 +19,7 @@ docs/html: srcs.list $(SRCS)
 doc: docs/html
 
 gh-pages.time: docs/html
-	cd docs/html && git add . && git commit -m "Update gh-pages" && git push origin gh-pages
+	cd docs/html && git add . && (git commit -m "Update gh-pages"; git push origin gh-pages)
 	date "+%s" > $@
 
 gh-pages: gh-pages.time
