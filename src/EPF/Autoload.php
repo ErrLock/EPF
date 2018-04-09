@@ -220,7 +220,14 @@ class Autoload extends StdClass
 			return false;
 		}
 		
-		$class = substr($class, strlen($this->namespace));
+		if($class == $this->namespace)
+		{
+			$class = "\\". $class;
+		}
+		else
+		{
+			$class = substr($class, strlen($this->namespace));
+		}
 		$prefix = $this->path . str_replace('\\', DIRECTORY_SEPARATOR, $class);
 		
 		foreach($this->suffixes as $suffix)
