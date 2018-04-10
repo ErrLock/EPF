@@ -84,16 +84,42 @@ abstract class StdClass
 	/**
 	 * @brief Builds friendship cache
 	 */
-	private function _friend_build_cache(string $class)
+	private function _friend_build_cache($class)
 	{
-		self::$_friend_cache[$class] = array(
+		if(is_a($class, \ReflectionClass::class))
+		{
+			$class_name = $class->name;
+			$ref = $class;
+		}
+		else
+		{
+			$class_name = $class;
+		}
+		
+		if(isset(self::$_friend_cache[$class_name]))
+		{
+			return;
+		}
+		
+		self::$_friend_cache[$class_name] = array(
 			'members' => array(),
 			'friends' => array()
 		);
-		$ref = new \ReflectionClass($class);
+		
+		if(!isset($ref))
+		{
+			$ref = new \ReflectionClass($class_name);
+		}
 		
 		$this->_friend_cache_members($ref);
 		$this->_friend_cache_friends($ref);
+		
+		// Also cache parents
+		$ref = $ref->getParentClass();
+		if($ref)
+		{
+			$this->_friend_build_cache($ref);
+		}
 	}
 	
 	/**
@@ -108,8 +134,11 @@ abstract class StdClass
 		
 		foreach($protected as $member)
 		{
-			self::$_friend_cache[$ref->name]['members'][$member->name] =
-				(is_a($member, 'ReflectionProperty') ? 'property' : 'method');
+			self::$_friend_cache[$ref->name]['members'][$member->name] = array(
+				'class' => $member->class,
+				'type' => (is_a($member, 'ReflectionProperty') ?
+					'property' : 'method')
+			);
 		}
 	}
 	
@@ -170,10 +199,7 @@ abstract class StdClass
 			throw new \Error("Undefined ". $type .": ". $class ."::". $name);
 		}
 		
-		if(!isset(self::$_friend_cache[$class]))
-		{
-			$this->_friend_build_cache($class);
-		}
+		$this->_friend_build_cache($class);
 		
 		if(!isset(self::$_friend_cache[$class]['members'][$name]))
 		{
@@ -183,20 +209,23 @@ abstract class StdClass
 				"Cannot access private property ". $class ."::". $name
 			);
 		}
-		elseif(self::$_friend_cache[$class]['members'][$name] !== $type)
+		elseif(self::$_friend_cache[$class]['members'][$name]['type'] !== $type)
 		{
 			throw new \Error("Undefined ". $type .": ". $class ."::". $name);
 		}
 		
+		$m_class = self::$_friend_cache[$class]['members'][$name]['class'];
 		$caller = debug_backtrace(null, 3)[2]['class'];
 		if(
 			empty($caller)
-			|| !isset(self::$_friend_cache[$class]['friends'][$caller])
+			|| !isset(self::$_friend_cache[$m_class]['friends'][$caller])
 		)
 		{
 			// Not a friend
+			var_dump(self::$_friend_cache);
 			throw new \Error(
-				"Cannot access protected property ". $class ."::". $name
+				"Cannot access protected property ". $m_class ."::". $name .
+				" from ". $caller
 			);
 		}
 	}
