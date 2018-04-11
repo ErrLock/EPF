@@ -1,0 +1,372 @@
+#!/usr/bin/env php
+<?php
+	define('DEBUG', true);
+	
+	const S_MAIN = 0b01;
+	const S_CLASS = 0b10;
+	
+	$php_types = array(
+		'array',
+		'callable',
+		'bool',
+		'float',
+		'int',
+		'string'
+	);
+
+	$source = file_get_contents($_SERVER['argv'][1]);
+	$token_list = token_get_all($source);
+	$token = null;
+	$id = null;
+	$text = null;
+	
+	$php_code = false;
+	$scope = S_MAIN;
+	$namespace = null;
+	$property_type = null;
+	
+	function get_token()
+	{
+		global $token_list, $token, $id, $text;
+		
+		if(!isset($token))
+		{
+			$token = reset($token_list);
+		}
+		else
+		{
+			$token = next($token_list);
+		}
+		
+		if($token === false)
+		{
+			return false;
+		}
+		
+		$id = null;
+		$text = $token;
+
+		if(is_array($token))
+		{
+			list($id, $text) = $token;
+		}
+		
+		return true;
+	}
+	
+	function get_namespace()
+	{
+		global $namespace, $id, $text;
+		
+		$namespace = "";
+		$buffer = $text;
+		while(get_token() !== false)
+		{
+			$buffer .= $text;
+			switch($id)
+			{
+				case T_STRING;
+					$namespace .= $text;
+				case null:
+					if($text == ";")
+					{
+						$text = $buffer;
+						return;
+					}
+					break;
+			}
+		}
+	}
+	
+	function parse_doc()
+	{
+		global $id, $text;
+		
+		if(preg_match('#@property\s+([^\s\r\n]*)#', $text, $matches))
+		{
+			$property_type = $matches[1];
+			$doc_type = $property_type;
+			if(preg_match('#.+\[\]#', $doc_type))
+			{
+				$doc_type = 'array';
+			}
+			$doc = $text;
+			$ws_done = false;
+			$var_name = null;
+			$buffer = "";
+			
+			while(get_token() !== false)
+			{
+				switch($id)
+				{
+					case T_WHITESPACE:
+						break;
+					case null:
+						if($text == ';')
+						{
+							$doc = preg_replace(
+								'#(@property)\s+[^\r\n]*#',
+								'$1 '. $doc_type .' '. $var_name,
+								$doc
+							);
+							$text = $doc . $buffer . $text;
+							return;
+						}
+						break;
+					case T_VARIABLE:
+						$var_name = $text;
+					default:
+						if(!$ws_done)
+						{
+							$buffer .= $property_type ." ";
+							$ws_done = true;
+						}
+						break;
+				}
+				$buffer .= $text;
+			}
+		}
+	}
+	
+	while(get_token() !== false)
+	{
+		if(!$php_code)
+		{
+			if($id == T_OPEN_TAG)
+			{
+				$php_code = true;
+			}
+			echo $text;
+			continue;
+		}
+		
+		switch($id)
+		{
+			case T_CLOSE_TAG;
+				$php_code = false;
+				break;
+			//~ case null:
+				//~ if(defined('DEBUG')) echo "TEXT: [". $text ."]";
+				//~ unset($text);
+				//~ break;
+			//~ default:
+				//~ if(defined('DEBUG')) echo token_name($id) .": [". $text ."]";
+				//~ unset($text);
+				//~ break;
+			case T_NAMESPACE:
+				if($scope == S_MAIN)
+				{
+					get_namespace();
+				}
+				break;
+			case T_CLASS:
+				$scope = S_CLASS;
+				break;
+			case T_DOC_COMMENT:
+				parse_doc();
+				break;
+		}
+		
+		if(isset($text)) echo $text;
+	}
+
+
+
+	//~ foreach ($tokens as $token) {
+		//~ if(is_string($token)) {
+			//~ switch($token)
+			//~ {
+				//~ case '(':
+				//~ case ',':
+					//~ if($fn_def)
+					//~ {
+						//~ $param_def = true;
+						//~ $param_type = "";
+						//~ $buffer = "";
+					//~ }
+					//~ break;
+				//~ case ')':
+					//~ if($fn_def)
+					//~ {
+						//~ $fn_def = false;
+						//~ $param_def = false;
+						//~ $fn_name = null;
+						//~ $param_type = null;
+						//~ unset($buffer);
+					//~ }
+					//~ break;
+				//~ case ';':
+					//~ if($alias_def)
+					//~ {
+						//~ $alias_def = false;
+						//~ if(isset($alias_target))
+						//~ {
+							//~ $aliases[$alias_name] = $alias_target;
+							//~ unset($alias_name);
+							//~ unset($alias_target);
+						//~ }
+					//~ }
+			//~ }
+			//~ echo $token;
+			//~ continue;
+		//~ }
+		
+		//~ list($id, $text) = $token;
+		
+		//~ if(!$php_code)
+		//~ {
+			//~ if($id == T_OPEN_TAG)
+			//~ {
+				//~ $php_code = true;
+			//~ }
+			//~ echo $text;
+			//~ continue;
+		//~ }
+		
+		//~ switch($id)
+		//~ {
+			//~ case T_CLOSE_TAG;
+				//~ $php_code = false;
+				//~ break;
+			//~ case T_NAMESPACE:
+				//~ $ns_def = true;
+				//~ break;
+			//~ case T_NS_SEPARATOR:
+				//~ if($param_def && isset($param_type))
+				//~ {
+					//~ $param_type .= $text;
+				//~ }
+				//~ elseif($alias_def && isset($alias_target))
+				//~ {
+					//~ $alias_target .= $text;
+				//~ }
+				//~ break;
+			//~ case T_STRING:
+				//~ if($ns_def)
+				//~ {
+					//~ $ns_name = $text;
+					//~ $ns_def = false;
+				//~ }
+				//~ elseif($fn_def)
+				//~ {
+					//~ if($param_def && isset($param_type))
+					//~ {
+						//~ $param_type .= $text;
+					//~ }
+					//~ else
+					//~ {
+						//~ $fn_name = $text;
+					//~ }
+				//~ }
+				//~ elseif($class_def)
+				//~ {
+					//~ $class_name = $text;
+					//~ $class_def = false;
+				//~ }
+				//~ elseif($alias_def && isset($alias_target))
+				//~ {
+					//~ $alias_target .= $text;
+					//~ $alias_name = $text;
+				//~ }
+				//~ break;
+			//~ case T_ARRAY:
+				//~ if($fn_def)
+				//~ {
+					//~ if($param_def && isset($param_type))
+					//~ {
+						//~ $param_type .= $text;
+					//~ }
+				//~ }
+				//~ break;
+			//~ case T_DOC_COMMENT:
+				//~ if(preg_match('#@property\s+([^\s\r\n]*)#', $text, $matches))
+				//~ {
+					//~ $prop_type = $matches[1];
+					//~ $buffer = "";
+				//~ }
+				//~ break;
+			//~ case T_VARIABLE:
+				//~ if(isset($prop_type))
+				//~ {
+					//~ $var_name = $text;
+					//~ $doc_type = $prop_type;
+					//~ if(preg_match('#(.+)\[\]#', $prop_type, $matches))
+					//~ {
+						//~ $doc_type = 'array';
+					//~ }
+					//~ $buffer = preg_replace(
+						//~ '#(@property)\s+[^\r\n]*#',
+						//~ '$1 '. $doc_type .' '. $var_name,
+						//~ $buffer
+					//~ );
+					//~ $text = $buffer . $prop_type ." ". $var_name;
+					//~ unset($buffer);
+					//~ unset($prop_type);
+				//~ }
+				//~ elseif($param_def)
+				//~ {
+					//~ if(!empty($param_type))
+					//~ {
+						//~ if(!in_array($param_type, $php_types))
+						//~ {
+							//~ if($param_type == 'self')
+							//~ {
+								//~ $param_type = $class_name;
+							//~ }
+							//~ else
+							//~ {
+								//~ if(($pos = strpos($param_type, '\\')) !== 0)
+								//~ {
+									//~ $class = $param_type;
+									//~ if($pos !== false)
+									//~ {
+										//~ $class = substr($param_type, 0, $pos);
+										//~ $param_type = substr($param_type, $pos);
+									//~ }
+									//~ else
+									//~ {
+										//~ $param_type = "";
+									//~ }
+									//~ if(isset($aliases[$class]))
+									//~ {
+										//~ $param_type = $aliases[$class] . $param_type;
+									//~ }
+									//~ else
+									//~ {
+										//~ $param_type =
+											//~ '\\'. $ns_name .'\\'. $class . $param_type;
+									//~ }
+								//~ }
+							//~ }
+						//~ }
+						//~ $text = $param_type ." ". $text;
+						//~ $param_type = "";
+					//~ }
+					//~ $text = " ". $text;
+					//~ unset($buffer);
+				//~ }
+				//~ break;
+			//~ case T_FUNCTION:
+				//~ $fn_def = true;
+				//~ break;
+			//~ case T_CLASS:
+				//~ $class_def = true;
+				//~ break;
+			//~ case T_USE:
+				//~ $alias_def = true;
+				//~ $alias_target = "";
+				//~ break;
+			//~ default:
+				//~ break;
+		//~ }
+		//~ echo token_name($id) .": ";
+		
+		//~ if(isset($buffer))
+		//~ {
+			//~ $buffer .= $text;
+			//~ continue;
+		//~ }
+		
+		//~ echo $text;
+	//~ }
+?>
