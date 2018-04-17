@@ -52,9 +52,24 @@ abstract class StdClass
 	 */
 	public function __call(string $name, array $args)
 	{
-		$this->_friend_check('method', $name);
+		self::_friend_check('method', $name);
 		
 		return call_user_func_array(array($this, $name), $args);
+	}
+	
+	/**
+	 * @brief Call to inaccessible static method
+	 * @details
+	 * Allows calling protected static methods by friends
+	 * 
+	 * @param[in] string $name method name
+	 * @param[in] array $args arguments
+	 */
+	public static function __callStatic(string $name, array $args)
+	{
+		self::_friend_check('method', $name);
+		
+		return call_user_func_array(array(static::class, $name), $args);
 	}
 	
 	/**
@@ -64,7 +79,7 @@ abstract class StdClass
 	 */
 	public function __get(string $name)
 	{
-		$this->_friend_check('property', $name);
+		self::_friend_check('property', $name);
 		
 		return $this->$name;
 	}
@@ -76,7 +91,7 @@ abstract class StdClass
 	 */
 	public function __set(string $name, $value)
 	{
-		$this->_friend_check('property', $name);
+		self::_friend_check('property', $name);
 
 		$this->$name = $value;
 	}
@@ -84,7 +99,7 @@ abstract class StdClass
 	/**
 	 * @brief Builds friendship cache
 	 */
-	private function _friend_build_cache($class)
+	private static function _friend_build_cache($class)
 	{
 		if(is_a($class, \ReflectionClass::class))
 		{
@@ -111,21 +126,21 @@ abstract class StdClass
 			$ref = new \ReflectionClass($class_name);
 		}
 		
-		$this->_friend_cache_members($ref);
-		$this->_friend_cache_friends($ref);
+		self::_friend_cache_members($ref);
+		self::_friend_cache_friends($ref);
 		
 		// Also cache parents
 		$ref = $ref->getParentClass();
 		if($ref)
 		{
-			$this->_friend_build_cache($ref);
+			self::_friend_build_cache($ref);
 		}
 	}
 	
 	/**
 	 * @brief Cache protected members
 	 */
-	private function _friend_cache_members(\ReflectionClass $ref)
+	private static function _friend_cache_members(\ReflectionClass $ref)
 	{
 		$protected = array_merge(
 			$ref->getProperties(\ReflectionProperty::IS_PROTECTED),
@@ -145,7 +160,7 @@ abstract class StdClass
 	/**
 	 * @brief Cache friend classes
 	 */
-	private function _friend_cache_friends(\ReflectionClass $ref)
+	private static function _friend_cache_friends(\ReflectionClass $ref)
 	{	
 		/*
 		 * We must use a property
@@ -189,17 +204,17 @@ abstract class StdClass
 	/**
 	 * @brief Check for friendship access
 	 */
-	private function _friend_check(string $type, string $name)
+	private static function _friend_check(string $type, string $name)
 	{
-		$class = get_class($this);
+		$class = static::class;
 		
 		$exists = $type .'_exists';
-		if(!$exists($this, $name))
+		if(!$exists($class, $name))
 		{
 			throw new \Error("Undefined ". $type .": ". $class ."::". $name);
 		}
 		
-		$this->_friend_build_cache($class);
+		self::_friend_build_cache($class);
 		
 		if(!isset(self::$_friend_cache[$class]['members'][$name]))
 		{
@@ -215,14 +230,21 @@ abstract class StdClass
 		}
 		
 		$m_class = self::$_friend_cache[$class]['members'][$name]['class'];
-		$caller = debug_backtrace(null, 3)[2]['class'];
+		$bt = debug_backtrace(null, 3);
+		if(!isset($bt[2]))
+		{
+			// Main scope
+			throw new \Error(
+				"Cannot access protected property ". $m_class ."::". $name
+			);
+		}
+		$caller = $bt[2]['class'];
 		if(
 			empty($caller)
 			|| !isset(self::$_friend_cache[$m_class]['friends'][$caller])
 		)
 		{
 			// Not a friend
-			var_dump(self::$_friend_cache);
 			throw new \Error(
 				"Cannot access protected property ". $m_class ."::". $name .
 				" from ". $caller
